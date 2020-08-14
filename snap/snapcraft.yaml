@@ -1,0 +1,74 @@
+name: acme-sh-dns
+base: core20
+version: '2.8.6'
+summary: DNS only version of acme.sh
+description: |
+  An ACME protocol client written purely in Shell (Unix shell) language 
+  - Full ACME protocol implementation.
+  - Support ACME v1 and ACME v2
+  - Support ACME v2 wildcard certs
+  - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
+  - Bash, dash and sh compatible.
+  - Simplest shell script for Let's Encrypt free certificate client.
+  - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
+  - Just one script to issue, renew and install your certificates automatically.
+  - DOES NOT require root/sudoer access.
+  - Docker friendly
+  - IPv6 support
+  - Cron job notifications for renewal or error etc.
+  - It's probably the easiest & smartest shell script to automatically issue & renew the free certificates from Let's Encrypt.
+
+  Wiki: https://github.com/acmesh-official/acme.sh/wiki
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: strict # use 'strict' once you have the right plugs and slots
+
+apps:
+  acme-sh-dns:
+    environment:
+      LE_CONFIG_HOME: $SNAP_USER_DATA
+      LE_WORKING_DIR: $SNAP
+      ACCOUNT_CONF_PATH: $SNAP_DATA
+      CERT_HOME: $SNAP_USER_DATA/certs
+    command: ./acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
+
+slots:
+  certs:
+    interface: content
+    content: certs
+    read: 
+      - $SNAP_USER_DATA/certs
+
+layout:
+  $SNAP/account.sh.env:
+    bind-file: $SNAP_DATA/account.sh.env
+
+parts:
+  acme-sh-dns:
+    plugin: nil
+    source: https://github.com/acmesh-official/acme.sh.git
+    source-tag: ${SNAPCRAFT_PROJECT_VERSION}
+    override-build: |
+      set -e
+      sed -i 's#DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"#DEFAULT_INSTALL_HOME="$SNAP/.$PROJECT_NAME"#g' $SNAPCRAFT_PART_BUILD/acme.sh
+      echo $SNAPCRAFT_PART_INSTALL
+      export LE_CONFIG_HOME=$SNAPCRAFT_PART_INSTALL
+      export LE_WORKING_DIR=$SNAPCRAFT_PART_INSTALL
+      export HOME=$SNAPCRAFT_PART_INSTALL
+      ${SNAPCRAFT_PART_BUILD}/acme.sh --install 
+      sed -i 's#LE_WORKING_DIR="/root/parts/acme-sh/install"#LE_WORKING_DIR="$SNAP"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
+      sed -i 's#acme.sh="/root/parts/acme-sh/install/acme.sh"#acme.sh="$SNAP/acme.sh"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
+    stage:
+      - acme.sh
+      - acme.sh.env
+      - account.conf
+      - deploy
+      - dnsapi
+      - notify
+      - etc
+      - usr
+      - var
+    stage-packages:
+      - openssl
+      - cron
+      - socat
+      - curl
