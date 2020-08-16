@@ -3,7 +3,7 @@
 while true; do
     echo "Refresh certs"
     $SNAP/acme.sh --renew-all
-    sleep 1800 
+    sleep 86400
 done;
 
 exit 0
