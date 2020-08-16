@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+while true; do
+    echo "Refresh certs"
+    $SNAP/acme.sh --renew-all
+    sleep 1800 
+done;
+
+exit 0
