@@ -27,12 +27,28 @@ apps:
     environment:
       LE_CONFIG_HOME: $SNAP_USER_DATA
       LE_WORKING_DIR: $SNAP
-      ACCOUNT_CONF_PATH: $SNAP_DATA
+      ACCOUNT_CONF_PATH: $SNAP_USER_DATA
       CERT_HOME: $SNAP_USER_DATA/certs
+      CA_HOME: $SNAP_USER_DATA/ca
     command: ./acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
     plugs:
       - network
       - network-bind
+  certs-daemon:
+    environment:
+      LE_CONFIG_HOME: $SNAP_USER_DATA
+      LE_WORKING_DIR: $SNAP
+      ACCOUNT_CONF_PATH: $SNAP_USER_DATA
+      CERT_HOME: $SNAP_USER_DATA/certs
+      CA_HOME: $SNAP_USER_DATA/ca
+    command: bin/daemon
+    daemon: simple
+    restart-condition: always
+    plugs:
+      - network
+      - network-bind
+    slots:
+      - certs
 
 slots:
   certs:
@@ -75,3 +91,9 @@ parts:
       - cron
       - socat
       - curl
+  daemon:
+    plugin: dump
+    source: ./src
+    source-type: local
+    organize:
+      daemon: bin/daemon
