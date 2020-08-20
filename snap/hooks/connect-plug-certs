@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+CONN_SNAP=`snapctl get --slot :certs snapname`
+CONN_UUID=`snapctl get --slot :certs uuid`
+CONN_PKEY=`snapctl get --slot :certs pkey`
+
+echo "${CONN_SNAP}"
+echo "UUID: '${CONN_UUID}'"
+echo "KEY: '${CONN_PKEY}'"
+CERTS_DIR="${SNAP_DATA}/certs"
+read -p "What certificate"
+CERTS_DIR_SNAP="${CERTS_DIR}/${CONN_SNAP}"
+ls -al "${CERTS_DIR}"
+touch "${CERTS_DIR}/file"
+exit 1

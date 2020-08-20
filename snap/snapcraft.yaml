@@ -1,7 +1,7 @@
-name: acme-sh-dns
+name: acme-sh
 base: core20
 version: '2.8.6'
-summary: DNS only version of acme.sh
+summary: 'An ACME Shell script: acme.sh'
 description: |
   An ACME protocol client written purely in Shell (Unix shell) language 
   - Full ACME protocol implementation.
@@ -23,46 +23,50 @@ grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 
 apps:
-  acme-sh-dns:
+  acme-sh:
     environment:
-      LE_CONFIG_HOME: $SNAP_USER_DATA
       LE_WORKING_DIR: $SNAP
-      ACCOUNT_CONF_PATH: $SNAP_USER_DATA
-      CERT_HOME: $SNAP_USER_DATA/certs
-      CA_HOME: $SNAP_USER_DATA/ca
-    command: ./acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
+      USER_DATA: $SNAP_USER_DATA
+    command-chain: [ bin/uinit ]
+    command: bin/acme.sh
     plugs:
       - network
       - network-bind
-  certs-daemon:
+  dns:
     environment:
-      LE_CONFIG_HOME: $SNAP_USER_DATA
       LE_WORKING_DIR: $SNAP
-      ACCOUNT_CONF_PATH: $SNAP_USER_DATA
-      CERT_HOME: $SNAP_USER_DATA/certs
-      CA_HOME: $SNAP_USER_DATA/ca
-    command: bin/daemon
-    daemon: simple
+      USER_DATA: $SNAP_USER_DATA
+    command-chain: [ bin/uinit ]
+    command: bin/acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
+    plugs:
+      - network
+      - network-bind
+  init:
+    command: bin/init
+  daemon:
+    environment:
+      LE_WORKING_DIR: $SNAP
+    daemon: oneshot
     restart-condition: always
+    command: bin/daemon
     plugs:
       - network
       - network-bind
-    slots:
       - certs
+    timer: 00:00~24:00/2
 
-slots:
+plugs:
   certs:
     interface: content
     content: certs
-    read: 
-      - $SNAP_USER_DATA/certs
+    target: $SNAP_DATA/certs
 
-layout:
-  $SNAP/account.sh.env:
-    bind-file: $SNAP_DATA/account.sh.env
+hooks:
+  connect-plug-certs:
+    plugs: [certs]
 
 parts:
-  acme-sh-dns:
+  acme-sh:
     plugin: nil
     source: https://github.com/acmesh-official/acme.sh.git
     source-tag: ${SNAPCRAFT_PROJECT_VERSION}
@@ -74,10 +78,11 @@ parts:
       export LE_WORKING_DIR=$SNAPCRAFT_PART_INSTALL
       export HOME=$SNAPCRAFT_PART_INSTALL
       ${SNAPCRAFT_PART_BUILD}/acme.sh --install 
+      chmod a+x ${SNAPCRAFT_PART_INSTALL}/acme.sh
       sed -i 's#LE_WORKING_DIR="/root/parts/acme-sh/install"#LE_WORKING_DIR="$SNAP"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
       sed -i 's#acme.sh="/root/parts/acme-sh/install/acme.sh"#acme.sh="$SNAP/acme.sh"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
     stage:
-      - acme.sh
+      - bin/acme.sh
       - acme.sh.env
       - account.conf
       - deploy
@@ -91,9 +96,13 @@ parts:
       - cron
       - socat
       - curl
-  daemon:
+    organize:
+      acme.sh: bin/acme.sh
+  scripts:
     plugin: dump
     source: ./src
     source-type: local
     organize:
+      init: bin/init
+      uinit: bin/uinit
       daemon: bin/daemon

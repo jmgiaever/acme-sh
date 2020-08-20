@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+LOCAL_USER_DIR="`sed "s#${SNAP_NAME}/${SNAP_REVISION}#${SNAP_NAME}/current#g" <<< ${SNAP_DATA}`/${USER}"
+
+if [[ `whoami` = "root" ]]; then
+    echo "Do not run as root"
+    exit 1
+fi
+
+if ! [[ -d "${LOCAL_USER_DIR}" ]]; then
+    echo "Please run 'sudo acme-sh.init'"
+    exit 1
+fi
+
+USER_DATA=`sed "s#${SNAP_NAME}/${SNAP_REVISION}#${SNAP_NAME}/current#g" <<< ${USER_DATA}`
+export LE_CONFIG_HOME="${USER_DATA}/data"
+
+if [[ -d "${LE_CONFIG_HOME}" ]] && ! [[ -h "${LE_CONFIG_HOME}" ]]; then
+    echo "${LE_CONFIG_HOME} is not a symlink. Exiting."
+    exit 1
+elif ! [[ -d "${LE_CONFIG_HOME}" ]]; then
+
+    echo "Linking ${LE_CONFIG_HOME}"
+    ln -s "${LOCAL_USER_DIR}" "${LE_CONFIG_HOME}"
+    if [ $? -ne 0 ]; then 
+        echo "Error linking ${LE_CONFIG_HOME}"
+        exit 1
+    fi
+fi
+
+if ! [[ -f "${LOCAL_USER_DIR}/.local" ]]; then
+    echo "${USER_DATA}" > ${LOCAL_USER_DIR}/.local
+    echo ""
+    echo "Please take your time to read the help 'acme-sh --help', and"
+    echo " - "https://github.com/acmesh-official/acme.sh
+    echo ""
+    echo "If you're using the DNS manual mode, READ this:"
+    echo " - https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
+    echo " - https://github.com/acmesh-official/acme.sh#9-use-dns-manual-mode"
+    echo ""
+    echo "There will be set up a daemon (timer) which will try to refresh your"
+    echo "certificate(s) twice a day. If you want to restart a serice that is using"
+    echo "the cert-slot, add a renew-hook."
+    echo ""
+    echo "Do not edit any of the data in the diretory: ${LOCAL_USER_DIR}"
+    echo ""
+    read -p "Press any key when you're ready to resume."
+fi
+
+export ACCOUNT_CONF_PATH="${LE_CONFIG_HOME}/account.sh.env"
+export CERT_HOME="${LE_CONFIG_HOME}/certs"
+export CA_HOME="${LE_CONFIG_HOME}/ca"
+
+LOCATIONS=(
+${ACCOUNT_CONF_PATH}
+${CERT_HOME}
+${CA_HOME}
+)
+
+if ! [[ -h "${LE_CONFIG_HOME}" ]]; then
+    echo "Config-home is missing, try fix this by running: 'sudo acme-sh.init'"
+    exit 1
+fi
+
+for DIR in "${LOCATIONS[@]}"; do
+    if [[ -d "${DIR}" ]]; then
+        if [[ -r "${DIR}" ]] || [[ -w "${DIR}" ]]; then
+            continue
+        fi
+    elif [[ -f "${DIR}" ]]; then
+        if [[ -r "${DIR}" ]] || [[ -w "${DIR}" ]]; then
+            continue
+        fi
+    fi
+    echo "Wrong permissions for ${DIR}, please run 'sudo acme-sh.init' to fix the problem."
+    exit 1
+done
+
+exec $@

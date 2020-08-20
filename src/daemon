@@ -1,9 +1,50 @@
 #!/usr/bin/env bash
 
-while true; do
-    echo "Refresh certs"
-    $SNAP/acme.sh --renew-all
-    sleep 86400
-done;
+if [[ `whoami` != "root" ]]; then
+    echo "Must run as root: 'sudo acme.sh.daemon'"
+    exit 1
+fi
 
+for DIR in "${SNAP_DATA}"/*; do
+    if [[ -d "${DIR}" ]]; then
+        _USR_LOCAL="${DIR}/.local"
+        if ! [[ -f $_USR_LOCAL ]]; then
+            continue
+        fi
+        _USR=`basename ${DIR}`
+        export USER_DATA=`cat ${_USR_LOCAL}`
+        echo "Running as ${_USR} in ${USER_DATA} (${_USR_LOCAL})"
+
+        CERTS="{USER_DATA}"
+        for CERT in "${DIR}/certs"/*; do
+            DOMAIN=`basename ${CERT}`
+            DOMAIN_CONF="${CERT}/${DOMAIN}.conf"
+            if [ -f "${DOMAIN_CONF}" ]; then
+                source ${DOMAIN_CONF}
+                if [[ "${Le_CertCreateTime}" = "" ]]; then
+                    continue
+                fi
+                echo "Set working domain ${Le_Domain}"
+
+                if [[ "${Le_Webroot}" = "dns" ]]; then 
+                    sudo -u "${_USR}" \
+                        --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
+                        $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew \
+                        --yes-I-know-dns-manual-mode-enough-go-ahead-please -d "${Le_Domain}"
+                else
+                    sudo -u "${_USR}" \
+                        --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
+                        $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew -d "${Le_Domain}"
+                fi
+
+                while read -r LINE; do
+                    LINE=`echo $LINE | cut -d'=' -f1`
+                    if [[ "${LINE}" != "" ]]; then
+                        unset $LINE
+                    fi
+                done < "${DOMAIN_CONF}"
+            fi
+        done
+    fi
+done
 exit 0
