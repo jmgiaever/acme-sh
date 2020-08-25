@@ -3,11 +3,29 @@
 PUBL_CERTS_DIR="${SNAP_DATA}/certs"
 
 function amiroot {
-    if [ -n "${SUDO_GID}" ]; then
+    if [ `id -gn` = "root" ]; then
         echo "root"
         return 0
     fi
-    echo "${USER}"
+    echo `id -un`
+    return 1
+}
+
+function get_real_user {
+    _USER=`id -un "${SUDO_USER}"`
+    if [ $? -eq 0 ]; then
+        echo "${_USER}"
+        return 0
+    fi
+    return 1
+}
+
+function get_user_home {
+    _HOME=`eval echo "~${1}"`
+    if [ $? -eq 0 ]; then
+        echo "${_HOME}"
+        return 0
+    fi
     return 1
 }
 

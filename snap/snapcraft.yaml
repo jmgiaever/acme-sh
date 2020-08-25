@@ -30,15 +30,32 @@ grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 
 apps:
-  acme-sh:
+  init:
     environment:
       LE_WORKING_DIR: $SNAP
-      USER_DATA: $SNAP_
+      USER_DATA: $SNAP_DATA
     command-chain: [ bin/uinit ]
     command: bin/init
     plugs:
       - network
       - network-bind
+      - home
+  renew-daemon:
+    environment:
+      LE_WORKING_DIR: $SNAP
+    daemon: oneshot
+    restart-condition: always
+    timer: 00:00~24:00/1440
+    command: bin/renew-daemon
+    plugs:
+      - home
+      - network
+      - network-bind
+
+plugs:
+  home: 
+    read: all
+  #read: ${HOME}/snap/${SNAP_INSTANCE_NAME}
 #   dns-manual:
 #     environment:
 #       LE_WORKING_DIR: $SNAP
@@ -59,16 +76,6 @@ apps:
 #       - user-data-plug
 #       - network
 #       - network-bind
-  renew-daemon:
-    environment:
-      LE_WORKING_DIR: $SNAP
-    daemon: oneshot
-    restart-condition: always
-    timer: 00:00~24:00/1440
-    command: bin/renew-daemon
-    plugs:
-      - network
-      - network-bind
       # - certs
     # slots:
     #   - user-data-slot

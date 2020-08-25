@@ -1,10 +1,40 @@
 #!/usr/bin/env bash
-printenv | grep "SNAP_"
+#printenv
 
 set -ex
 source "${SNAP}/helper/functions"
 
-amiroot
+if [ `amiroot` != "root" ]; then
+    echo "Run as sudo, 'sudo acme-sh.init'"
+    exit 1
+fi
+
+USER=`get_real_user`
+
+if [ $? -ne 0 ]; then
+    echo "Unknown user.."
+    exit 1
+fi
+
+HOME=`get_user_home "${USER}"`
+
+if [ $? -ne 0 ]; then
+    echo "Unknown homedir"
+fi
+
+echo "User '${USER}' lives in ${HOME}"
+
+
+INSTANCE_HOME="${HOME}/snap/${SNAP_INSTANCE_NAME}/${SNAP_REVISION}"
+
+#TODO FIX INSTANCE HOME:
+
+ls -al "${INSTANCE_HOME}/"
+
+if [ ! -d "${INSTANCE_HOME}/certs" ]; then
+    sudo -u "${USER}" mkdir "${INSTANCE_HOME}/certs"
+    ls -al "${INSTANCE_HOME}/"
+fi
 
 # if [ `whoami` != "root" ]; then
 #     echo "Run as sudo, 'sudo acme-sh.init'"
