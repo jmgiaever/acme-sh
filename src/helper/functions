@@ -2,6 +2,15 @@
 
 PUBL_CERTS_DIR="${SNAP_DATA}/certs"
 
+function amiroot {
+    if [ -n "${SUDO_GID}" ]; then
+        echo "root"
+        return 0
+    fi
+    echo "${USER}"
+    return 1
+}
+
 function str_connection {
     basename ${1} ".pub"
 }

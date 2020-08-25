@@ -1,65 +1,65 @@
 #!/usr/bin/env bash
 
-if [[ `whoami` != "root" ]]; then
-    exit 1
-fi
-
-source "${SNAP}/helper/functions"
-
-gpg_start_agent
-
-for DIR in "${SNAP_DATA}"/*; do
-    if [[ -d "${DIR}" ]]; then
-        _USR_LOCAL="${DIR}/.local"
-        if ! [[ -f $_USR_LOCAL ]]; then
-            continue
-        fi
-        _USR=`basename ${DIR}`
-        export USER_DATA="`cat ${_USR_LOCAL}`/${SNAP_REVISION}"
-
-        CERTS="{USER_DATA}"
-        for CERT in "${DIR}/certs"/*; do
-            DOMAIN=`basename ${CERT}`
-            DOMAIN_CONF="${CERT}/${DOMAIN}.conf"
-            if [ -f "${DOMAIN_CONF}" ]; then
-                source ${DOMAIN_CONF}
-                if [[ "${Le_CertCreateTime}" = "" ]]; then
-                    continue
-                fi
-
-                RET=-1
-                if [[ "${Le_Webroot}" = "dns" ]]; then 
-                    sudo -u "${_USR}" \
-                        --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
-                        $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew \
-                        --yes-I-know-dns-manual-mode-enough-go-ahead-please -d "${Le_Domain}"
-                    RET=$?
-                else
-                    sudo -u "${_USR}" \
-                        --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
-                        $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew -d "${Le_Domain}"
-                    RET=$?
-                fi
-
-                if [ "${RET}" -eq 0 ]; then
-                    logger "Certificate for domain ${DOMAIN} is renewed"
-                    readarray -d '' KEYS < <(find "${CERT}" -type f -name "*.pub" -print0)
-                    for KEY in "${KEYS[@]}"; do
-                        logger "Update cert for ${DOMAIN} for `str_connection "${KEY}"`"
-                        gpg_encrypt_cert "${DOMAIN_CONF}" "${KEY}" "${KEY}"
-                    done
-                fi
-
-                while read -r LINE; do
-                    LINE=`echo $LINE | cut -d'=' -f1`
-                    if [[ "${LINE}" != "" ]]; then
-                        unset $LINE
-                    fi
-                done < "${DOMAIN_CONF}"
-            fi
-        done
-    fi
-done
-
-gpg_close_agent
-exit 0
+# if [[ `whoami` != "root" ]]; then
+#     exit 1
+# fi
+#
+# source "${SNAP}/helper/functions"
+#
+# gpg_start_agent
+#
+# for DIR in "${SNAP_DATA}"/*; do
+#     if [[ -d "${DIR}" ]]; then
+#         _USR_LOCAL="${DIR}/.local"
+#         if ! [[ -f $_USR_LOCAL ]]; then
+#             continue
+#         fi
+#         _USR=`basename ${DIR}`
+#         export USER_DATA="`cat ${_USR_LOCAL}`/${SNAP_REVISION}"
+#
+#         CERTS="{USER_DATA}"
+#         for CERT in "${DIR}/certs"/*; do
+#             DOMAIN=`basename ${CERT}`
+#             DOMAIN_CONF="${CERT}/${DOMAIN}.conf"
+#             if [ -f "${DOMAIN_CONF}" ]; then
+#                 source ${DOMAIN_CONF}
+#                 if [[ "${Le_CertCreateTime}" = "" ]]; then
+#                     continue
+#                 fi
+#
+#                 RET=-1
+#                 if [[ "${Le_Webroot}" = "dns" ]]; then
+#                     sudo -u "${_USR}" \
+#                         --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
+#                         $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew \
+#                         --yes-I-know-dns-manual-mode-enough-go-ahead-please -d "${Le_Domain}"
+#                     RET=$?
+#                 else
+#                     sudo -u "${_USR}" \
+#                         --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
+#                         $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew -d "${Le_Domain}"
+#                     RET=$?
+#                 fi
+#
+#                 if [ "${RET}" -eq 0 ]; then
+#                     logger "Certificate for domain ${DOMAIN} is renewed"
+#                     readarray -d '' KEYS < <(find "${CERT}" -type f -name "*.pub" -print0)
+#                     for KEY in "${KEYS[@]}"; do
+#                         logger "Update cert for ${DOMAIN} for `str_connection "${KEY}"`"
+#                         gpg_encrypt_cert "${DOMAIN_CONF}" "${KEY}" "${KEY}"
+#                     done
+#                 fi
+#
+#                 while read -r LINE; do
+#                     LINE=`echo $LINE | cut -d'=' -f1`
+#                     if [[ "${LINE}" != "" ]]; then
+#                         unset $LINE
+#                     fi
+#                 done < "${DOMAIN_CONF}"
+#             fi
+#         done
+#     fi
+# done
+#
+# gpg_close_agent
+# exit 0

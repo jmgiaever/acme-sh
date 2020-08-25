@@ -1,91 +1,97 @@
 #!/usr/bin/env bash
+printenv | grep "SNAP_"
 
-if [ `whoami` != "root" ]; then
-    echo "Run as sudo, 'sudo acme-sh.init'"
-    exit 1
-fi
+set -ex
+source "${SNAP}/helper/functions"
 
-USR="${SUDO_USER}"
-LOG="${SNAP_DATA}/init.${USR}.log"
+amiroot
 
-touch $LOG
-date >> $LOG
-
-USR_DIR="${SNAP_DATA}/${USR}"
-
-VERBOSE=0
-
-while [ "${1}" != "" ]; do
-    case "${1}" in
-        "-f" | "--force") shift 
-            rm -r "${USR_DIR}" >> $LOG
-            if [ $? -eq 0 ]; then
-                rm "${LOG}"
-                touch "${LOG}"
-                date >> $LOG
-                echo "Deleted ${USR_DIR}" >> $LOG
-            else
-                echo "${USR_DIR} does not exist" >> $LOG
-            fi
-            ;;
-        "-v" | "--verbose") shift
-            VERBOSE=1
-            ;;
-        "-h" | "--help") 
-            echo "-f: delete ${USR}-folder and re-create"
-            echo "-v: output a diagnostic for every file processed"
-            exit 0
-            ;;
-        *) echo "See: $0 --help"
-            exit 1;;
-    esac
-    shift
-done
-
-if [ -d "${USR_DIR}" ]; then
-    echo "Directory ${USR_DIR} exists" >> $LOG
-else
-    echo "Creating ${USR_DIR}" >> $LOG
-    mkdir "${USR_DIR}" || echo "Failed creating ${USR_DIR}" >> $LOG
-fi
-
-ACCOUNT_CONF="${USR_DIR}/account.sh.env"
-if [ -e "${ACCOUNT_CONF}" ]; then
-    echo "File ${ACCOUNT_CONF} exists" >> $LOG
-else
-    echo "Touching file ${ACCOUNT_CONF}" >> $LOG
-    touch "${ACCOUNT_CONF}" || echo "Error creating dir ${ACCOUNT_CONF}" >> $LOG
-fi
-
-CERT_HOME="${USR_DIR}/certs"
-if [ -d "${CERT_HOME}" ]; then
-    echo "Directory ${CERT_HOME} exists" >> $LOG
-else
-    echo "Creating ${CERT_HOME}" >> $LOG
-    mkdir "${CERT_HOME}" || echo "Failed creating ${CERT_HOME}" >> $LOG
-fi
-
-CA_HOME="${USR_DIR}/ca"
-if [ -d "${CA_HOME}" ]; then
-    echo "Directory ${CA_HOME} exists" >> $LOG
-else
-    echo "Creating ${CA_HOME}" >> $LOG
-    mkdir "${CA_HOME}" || echo "Failed creating ${CA_HOME}" >> $LOG
-fi
-
-GROUP=`groups ${USR} | cut -d ' ' -f3`
-echo "Setting ownership to ${USR}:${GROUP}" >> $LOG
-chown ${USR}:${GROUP} -R "${USR_DIR}" >> $LOG
-
-echo "Setting permissions" >> $LOG
-find ${USR_DIR} -type d -exec chmod 0700 {} + >> $LOG
-find ${USR_DIR} -type f -exec chmod 0600 {} + >> $LOG
-
-ls -al ${SNAP_DATA}/ | grep "${USR} ${GROUP}" >> $LOG
-
-if [ $VERBOSE -eq 1 ]; then
-    cat $LOG
-fi
-
-echo "Initialized for user ${USR}, now run 'acme-sh' as user ${USR}"
-exit 0
+# if [ `whoami` != "root" ]; then
+#     echo "Run as sudo, 'sudo acme-sh.init'"
+#     exit 1
+# fi
+#
+# USR="${SUDO_USER}"
+# LOG="${SNAP_DATA}/init.${USR}.log"
+#
+# touch $LOG
+# date >> $LOG
+#
+# USR_DIR="${SNAP_DATA}/${USR}"
+#
+# VERBOSE=0
+#
+# while [ "${1}" != "" ]; do
+#     case "${1}" in
+#         "-f" | "--force") shift
+#             rm -r "${USR_DIR}" >> $LOG
+#             if [ $? -eq 0 ]; then
+#                 rm "${LOG}"
+#                 touch "${LOG}"
+#                 date >> $LOG
+#                 echo "Deleted ${USR_DIR}" >> $LOG
+#             else
+#                 echo "${USR_DIR} does not exist" >> $LOG
+#             fi
+#             ;;
+#         "-v" | "--verbose") shift
+#             VERBOSE=1
+#             ;;
+#         "-h" | "--help")
+#             echo "-f: delete ${USR}-folder and re-create"
+#             echo "-v: output a diagnostic for every file processed"
+#             exit 0
+#             ;;
+#         *) echo "See: $0 --help"
+#             exit 1;;
+#     esac
+#     shift
+# done
+#
+# if [ -d "${USR_DIR}" ]; then
+#     echo "Directory ${USR_DIR} exists" >> $LOG
+# else
+#     echo "Creating ${USR_DIR}" >> $LOG
+#     mkdir "${USR_DIR}" || echo "Failed creating ${USR_DIR}" >> $LOG
+# fi
+#
+# ACCOUNT_CONF="${USR_DIR}/account.sh.env"
+# if [ -e "${ACCOUNT_CONF}" ]; then
+#     echo "File ${ACCOUNT_CONF} exists" >> $LOG
+# else
+#     echo "Touching file ${ACCOUNT_CONF}" >> $LOG
+#     touch "${ACCOUNT_CONF}" || echo "Error creating dir ${ACCOUNT_CONF}" >> $LOG
+# fi
+#
+# CERT_HOME="${USR_DIR}/certs"
+# if [ -d "${CERT_HOME}" ]; then
+#     echo "Directory ${CERT_HOME} exists" >> $LOG
+# else
+#     echo "Creating ${CERT_HOME}" >> $LOG
+#     mkdir "${CERT_HOME}" || echo "Failed creating ${CERT_HOME}" >> $LOG
+# fi
+#
+# CA_HOME="${USR_DIR}/ca"
+# if [ -d "${CA_HOME}" ]; then
+#     echo "Directory ${CA_HOME} exists" >> $LOG
+# else
+#     echo "Creating ${CA_HOME}" >> $LOG
+#     mkdir "${CA_HOME}" || echo "Failed creating ${CA_HOME}" >> $LOG
+# fi
+#
+# GROUP=`groups ${USR} | cut -d ' ' -f3`
+# echo "Setting ownership to ${USR}:${GROUP}" >> $LOG
+# chown ${USR}:${GROUP} -R "${USR_DIR}" >> $LOG
+#
+# echo "Setting permissions" >> $LOG
+# find ${USR_DIR} -type d -exec chmod 0700 {} + >> $LOG
+# find ${USR_DIR} -type f -exec chmod 0600 {} + >> $LOG
+#
+# ls -al ${SNAP_DATA}/ | grep "${USR} ${GROUP}" >> $LOG
+#
+# if [ $VERBOSE -eq 1 ]; then
+#     cat $LOG
+# fi
+#
+# echo "Initialized for user ${USR}, now run 'acme-sh' as user ${USR}"
+# exit 0
