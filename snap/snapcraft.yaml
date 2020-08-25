@@ -149,6 +149,7 @@ parts:
       renew-daemon: bin/renew-daemon
       connect: bin/connect
       publish-daemon: bin/publish-daemon
-    # stage-packages:
+    stage-packages:
+      - sudo
     #   - gpg
     #   - gpg-agent

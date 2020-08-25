@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #printenv
 
-set -ex
+set -x
 source "${SNAP}/helper/functions"
 
 if [ `amiroot` != "root" ]; then
@@ -30,9 +30,10 @@ INSTANCE_HOME="${HOME}/snap/${SNAP_INSTANCE_NAME}/${SNAP_REVISION}"
 #TODO FIX INSTANCE HOME:
 
 ls -al "${INSTANCE_HOME}/"
+$SNAP/usr/bin/sudo -u "${USER}" ls -al "${INSTANCE_HOME}"
 
 if [ ! -d "${INSTANCE_HOME}/certs" ]; then
-    sudo -u "${USER}" mkdir "${INSTANCE_HOME}/certs"
+    $SNAP/usr/bin/sudo -u "${USER}" mkdir "${INSTANCE_HOME}/certs"
     ls -al "${INSTANCE_HOME}/"
 fi
 
