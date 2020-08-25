@@ -17,8 +17,10 @@ export LE_CONFIG_HOME="${USER_DATA}/data"
 if [ -h "${LE_CONFIG_HOME}" ]; then
     rm "${LE_CONFIG_HOME}"
 else
-    echo "${LE_CONFIG_HOME} is not an symbolic link"
-    exit 1
+    if [ -d "${LE_CONFIG_HOME}" ]; then
+        echo "${LE_CONFIG_HOME} is not an symbolic link"
+        exit 1
+    fi
 fi
 
 ln -s "${LOCAL_USER_DIR}" "${LE_CONFIG_HOME}"
@@ -40,10 +42,15 @@ if ! [[ -f "${LOCAL_USER_DIR}/.local" ]]; then
     echo "If you're using the DNS manual mode, READ this:"
     echo " - https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
     echo " - https://github.com/acmesh-official/acme.sh#9-use-dns-manual-mode"
+    echo " - AND note that adding the TXT-record to your DNS can take time to"
+    echo "   update. It's recommended to wait 10 minutes between --issue and --renew"
     echo ""
     echo "There will be set up a daemon (timer) which will try to refresh your"
-    echo "certificate(s) twice a day. If you want to restart a serice that is using"
-    echo "the cert-slot, add a renew-hook."
+    echo "certificate(s) twice a day."
+    echo ""
+    echo "For apps that need to read certificates, they must support the 'certs'"
+    echo "plug and be connected throug plugs/slots and by acme-sh.connect."
+    echo "However classic snaps can read it from your home directory."
     echo ""
     echo "Do not manually edit any of the data in the diretory: ${LOCAL_USER_DIR}"
     echo " - yes, we know you have 'rwx'-rights - but let's acme-sh manage them."
