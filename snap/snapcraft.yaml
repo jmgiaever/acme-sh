@@ -52,9 +52,6 @@ apps:
       - network
       - network-bind
 
-plugs:
-  home: 
-    read: all
   #read: ${HOME}/snap/${SNAP_INSTANCE_NAME}
 #   dns-manual:
 #     environment:
