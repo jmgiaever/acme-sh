@@ -19,7 +19,14 @@ description: |
   - It's probably the easiest & smartest shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
   Wiki: https://github.com/acmesh-official/acme.sh/wiki
-grade: devel # must be 'stable' to release into candidate/stable channels
+
+  BE AWARE that this version do not include all it's features, such as
+  - notify
+  - crontabs (instead it uses a daemon)
+  - running commands outside of its own filesystem
+    - but if you need to copy certificates, see the certs-plug 
+
+grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 
 apps:
