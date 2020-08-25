@@ -1,0 +1,11 @@
+#!/usr/bin/env bash 
+
+CONN_SNAP=`snapctl get --slot :certs snapname`
+CONN_UUID=`snapctl get --slot :certs uuid`
+
+logger "Deleting GPG-key ${CONN_SNAP}-${CONN_UUID}"
+
+rm -f "${SNAP_DATA}/.keys/${CONN_SNAP}-${CONN_UUID}.pub"
+if [ $? -ne 0 ]; then
+    logger "${CONN_SNAP} (uuid: ${CONN_UUID}) did not exist."
+fi

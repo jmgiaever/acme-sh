@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+snapctl is-connected certs
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+
+if [[ `whoami` != "root" ]]; then
+    exit 1
+fi
+
+find "${SNAP_DATA}/" -type f -name "*.gpg" -not -path "${SNAP_DATA}/certs/*" -exec mv -ft "${SNAP_DATA}/certs" {} +
+
+CERTS=`ls -A "${SNAP_DATA}/certs" | wc -l`
+logger "Available certificates in public domain `expr "${CERTS}" / 4` (${CERTS})"

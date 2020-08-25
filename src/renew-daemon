@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
 if [[ `whoami` != "root" ]]; then
-    echo "Must run as root: 'sudo acme.sh.daemon'"
     exit 1
 fi
+
+source "${SNAP}/helper/functions"
+
+gpg_start_agent
 
 for DIR in "${SNAP_DATA}"/*; do
     if [[ -d "${DIR}" ]]; then
@@ -12,8 +15,7 @@ for DIR in "${SNAP_DATA}"/*; do
             continue
         fi
         _USR=`basename ${DIR}`
-        export USER_DATA=`cat ${_USR_LOCAL}`
-        echo "Running as ${_USR} in ${USER_DATA} (${_USR_LOCAL})"
+        export USER_DATA="`cat ${_USR_LOCAL}`/${SNAP_REVISION}"
 
         CERTS="{USER_DATA}"
         for CERT in "${DIR}/certs"/*; do
@@ -24,17 +26,28 @@ for DIR in "${SNAP_DATA}"/*; do
                 if [[ "${Le_CertCreateTime}" = "" ]]; then
                     continue
                 fi
-                echo "Set working domain ${Le_Domain}"
 
+                RET=-1
                 if [[ "${Le_Webroot}" = "dns" ]]; then 
                     sudo -u "${_USR}" \
                         --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
                         $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew \
                         --yes-I-know-dns-manual-mode-enough-go-ahead-please -d "${Le_Domain}"
+                    RET=$?
                 else
                     sudo -u "${_USR}" \
                         --preserve-env=PATH,LD_LIBRARY_PATH,LE_WORKING_DIR,USER_DATA,SNAP_DATA,SNAP_NAME,SNAP_REVISION \
                         $SNAP/bin/uinit "${SNAP}/bin/acme.sh" --renew -d "${Le_Domain}"
+                    RET=$?
+                fi
+
+                if [ "${RET}" -eq 0 ]; then
+                    logger "Certificate for domain ${DOMAIN} is renewed"
+                    readarray -d '' KEYS < <(find "${CERT}" -type f -name "*.pub" -print0)
+                    for KEY in "${KEYS[@]}"; do
+                        logger "Update cert for ${DOMAIN} for `str_connection "${KEY}"`"
+                        gpg_encrypt_cert "${DOMAIN_CONF}" "${KEY}" "${KEY}"
+                    done
                 fi
 
                 while read -r LINE; do
@@ -47,4 +60,6 @@ for DIR in "${SNAP_DATA}"/*; do
         done
     fi
 done
+
+gpg_close_agent
 exit 0

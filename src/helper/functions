@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+PUBL_CERTS_DIR="${SNAP_DATA}/certs"
+
+function str_connection {
+    basename ${1} ".pub"
+}
+
+function str_cert {
+    basename "${1}" ".conf"
+}
+
+function f_exists_echo {
+    if [ -f "${1}" ]; then
+        echo "${1}"
+        return 0
+    fi
+    return 1
+}
+
+function ca_cert {
+    f_exists_echo "`dirname "${1}"`/ca.cer"
+}
+
+function fullchain {
+    f_exists_echo "`dirname "${1}"`/fullchain.cer"
+    return $?
+}
+
+function ssl_cert {
+    f_exists_echo "`dirname "${1}"`/`str_cert "${1}"`.cer"
+    return $?
+}
+
+function ssl_key {
+    f_exists_echo "`dirname "${1}"`/`str_cert "${1}"`.key"
+    return $?
+}
+
+function gpg_start_agent {
+    gpg-agent 2> /dev/null
+    if [ $? -ne 0 ]; then
+        logger "GPG-agent not here"
+        gpg-agent --daemon 2> /dev/null
+        if [ $? -eq 0 ]; then
+            logger "GPG-agent started"
+            return 0
+        fi
+        logger "Failed starting GPG-agent"
+        return 1
+    fi
+    return 0
+}
+
+function gpg_close_agent {
+    PID=`ps -T | grep gpg-agent | head -n 1 | cut -d' ' -f1`
+    if [ -n "${PID}" ]; then
+        logger "Kill GPG-agent: ${PID}"
+        kill -9 "${PID}" >> /dev/null
+    fi
+}
+
+function gpg_encrypt_cert {
+    GPG_TMP_DIR=`mktemp -d`
+
+    CA=`ca_cert "${1}"`
+    FULLCHAIN=`fullchain "${1}"`
+    SSL_CERT=`ssl_cert "${1}"`
+    SSL_KEY=`ssl_key "${1}"`
+
+    NEW_CA_BASE="`str_connection "${2}"`_`str_cert ${1}`-`basename "${CA}"`.gpg"
+    NEW_FULLCHAIN_BASE="`str_connection "${2}"`_`str_cert ${1}`-`basename "${FULLCHAIN}"`.gpg"
+    NEW_SSL_CERT_BASE="`str_connection "${2}"`_`basename "${SSL_CERT}"`.gpg"
+    NEW_SSL_KEY_BASE="`str_connection "${2}"`_`basename "${SSL_KEY}"`.gpg"
+
+    if [ `whoami` = "root" ]; then
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${CA}"
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" -e "${FULLCHAIN}"
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${SSL_CERT}"
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_SSL_KEY_BASE}" -e "${SSL_KEY}"
+        echo "New certificates published to the certificate (public) directory within `str_connection "${2}"`."
+    else
+        PRIVATE_CERTS_DIR=`dirname "${1}"`
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_CA_BASE}" -e "${CA}"
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" -e "${FULLCHAIN}"
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${SSL_CERT}"
+        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_KEY_BASE}" -e "${SSL_KEY}"
+        echo "New certificates will be available in the certificate directory of `str_connection "${2}"` within 5 minues."
+    fi
+
+    rm -rd "${GPG_TMP_DIR}"
+}

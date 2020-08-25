@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-LOCAL_USER_DIR="`sed "s#${SNAP_NAME}/${SNAP_REVISION}#${SNAP_NAME}/current#g" <<< ${SNAP_DATA}`/${USER}"
+LOCAL_USER_DIR="${SNAP_DATA}/${USER}"
 
 if [[ `whoami` = "root" ]]; then
     echo "Do not run as root"
@@ -12,24 +12,27 @@ if ! [[ -d "${LOCAL_USER_DIR}" ]]; then
     exit 1
 fi
 
-USER_DATA=`sed "s#${SNAP_NAME}/${SNAP_REVISION}#${SNAP_NAME}/current#g" <<< ${USER_DATA}`
 export LE_CONFIG_HOME="${USER_DATA}/data"
 
-if [[ -d "${LE_CONFIG_HOME}" ]] && ! [[ -h "${LE_CONFIG_HOME}" ]]; then
-    echo "${LE_CONFIG_HOME} is not a symlink. Exiting."
+if [ -h "${LE_CONFIG_HOME}" ]; then
+    rm "${LE_CONFIG_HOME}"
+else
+    echo "${LE_CONFIG_HOME} is not an symbolic link"
     exit 1
-elif ! [[ -d "${LE_CONFIG_HOME}" ]]; then
+fi
 
-    echo "Linking ${LE_CONFIG_HOME}"
-    ln -s "${LOCAL_USER_DIR}" "${LE_CONFIG_HOME}"
-    if [ $? -ne 0 ]; then 
-        echo "Error linking ${LE_CONFIG_HOME}"
-        exit 1
-    fi
+ln -s "${LOCAL_USER_DIR}" "${LE_CONFIG_HOME}"
+if [ $? -ne 0 ]; then 
+    echo "Error linking ${LE_CONFIG_HOME}"
+    exit 1
 fi
 
 if ! [[ -f "${LOCAL_USER_DIR}/.local" ]]; then
-    echo "${USER_DATA}" > ${LOCAL_USER_DIR}/.local
+    PWD=`pwd`
+    cd "${USER_DATA}/.."
+    DOT_LOCAL="`pwd`"
+    cd "${PWD}"
+    echo "${DOT_LOCAL}" > ${LOCAL_USER_DIR}/.local
     echo ""
     echo "Please take your time to read the help 'acme-sh --help', and"
     echo " - "https://github.com/acmesh-official/acme.sh
@@ -42,9 +45,12 @@ if ! [[ -f "${LOCAL_USER_DIR}/.local" ]]; then
     echo "certificate(s) twice a day. If you want to restart a serice that is using"
     echo "the cert-slot, add a renew-hook."
     echo ""
-    echo "Do not edit any of the data in the diretory: ${LOCAL_USER_DIR}"
+    echo "Do not manually edit any of the data in the diretory: ${LOCAL_USER_DIR}"
+    echo " - yes, we know you have 'rwx'-rights - but let's acme-sh manage them."
     echo ""
-    read -p "Press any key when you're ready to resume."
+    if [ -z "${SUDO_USER}" ]; then
+        read -p "Press any key when you're ready to resume."
+    fi
 fi
 
 export ACCOUNT_CONF_PATH="${LE_CONFIG_HOME}/account.sh.env"
@@ -76,4 +82,18 @@ for DIR in "${LOCATIONS[@]}"; do
     exit 1
 done
 
+if [ -z "${SUDO_USER}" ]; then
+    for XARG in "$@"; do
+        if [ "${XARG}" = "--renew" ]; then
+            echo -e "\e[31mManual renewal of a certificate wont update the connection between other\e[0m"
+            echo -e "\e[31msnaps. To force a new connection, run 'acme-sh.connect' again after the renewal.\e[0m"
+            echo -e "\e[31mThe\e[1m 'renew-daemon' will auto-update\e[0m \e[31mconnections when certificates renews.\e[0m"
+            echo ""
+            read -p "Press C+ENTER to cancel and wait for an auto-update, or any other key to resume: " INPUT
+            case "${INPUT^}" in
+                "C") exit 1 ;;
+            esac
+        fi
+    done
+fi
 exec $@
