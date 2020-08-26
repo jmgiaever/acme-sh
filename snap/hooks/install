@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ex
+
+mkdir "${SNAP_COMMON}/user-data"
+chmod 1777 "${SNAP_COMMON}/user-data"
