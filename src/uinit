@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+USER_DATA="${SNAP_COMMON}/user-data/${USER}"
 # LOCAL_USER_DIR="${SNAP_DATA}/${USER}"
 #
 # if [[ `whoami` = "root" ]]; then
