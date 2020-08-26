@@ -31,6 +31,7 @@ confinement: strict # use 'strict' once you have the right plugs and slots
 
 architectures:
   - build-on: arm64
+  - build-on: amd64
 
 apps:
   init:
