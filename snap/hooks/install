@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 set -ex
 
-mkdir "${SNAP_COMMON}/user-data"
-chmod 1777 "${SNAP_COMMON}/user-data"
+USER_DATA_COMMON="${SNAP_COMMON}/user-data"
+mkdir "${USER_DATA_COMMON}"
+chmod 1777 "${USER_DATA_COMMON}"
+
+SSL_DIR="${SNAP_USER_DATA}/.ssl"
+if [ ! -d "${SSL_DIR}" ]; then
+    mkdir "${SSL_DIR}" || (echo "Failed creating ${SSL_DIR}" && exit 1)
+fi
+
+SSL_KEY="${SSL_DIR}/id_rsa_4096"
+
+if [ ! -f "$SSH_KEY" ]; then
+    $SNAP/usr/bin/ssh-keygen -t rsa -b 4096 -q -f "${SSL_KEY}" -N ""
+    mv "${SSL_KEY}.pub" "${USER_DATA_COMMON}"
+    chmod 544 "${USER_DATA_COMMON}/`basename "${SSL_KEY}.pub"`"
+fi

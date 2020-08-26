@@ -43,7 +43,8 @@ apps:
     plugs:
       - network
       - network-bind
-      - home
+  pub-key:
+    command: bin/pub-key
   renew-daemon:
     environment:
       LE_WORKING_DIR: $SNAP
@@ -52,10 +53,8 @@ apps:
     timer: 00:00~24:00/1440
     command: bin/renew-daemon
     plugs:
-      - home
       - network
       - network-bind
-
   #read: ${HOME}/snap/${SNAP_INSTANCE_NAME}
 #   dns-manual:
 #     environment:
@@ -149,6 +148,7 @@ parts:
     source-type: local
     organize:
       init: bin/init
+      pub-key: bin/pub-key
       uinit: bin/uinit
       renew-daemon: bin/renew-daemon
       connect: bin/connect

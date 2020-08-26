@@ -1,19 +1,44 @@
 #!/usr/bin/env bash
 #printenv
 
-set -x
+source "${SNAP}/helper/functions"
+
+if [ `amiroot` = "root" ]; then
+    echo "Root, mkey. Not.";
+    exit 1
+fi
 
 USER_DATA_COMMON="${SNAP_COMMON}/user-data/${USER}"
 
 if [ ! -d "${USER_DATA_COMMON}" ]; then
+    SSH_KEY="${SNAP_COMMON}/user-data/id_rsa_4096.pub"
+    if [ ! -f "${SSH_KEY}"  ]; then
+        echo "Error creating user-config."
+        exit 1
+    fi
+
     mkdir "${USER_DATA_COMMON}"
-    chmod 0700 "${SNAP_COMMON}"
-    mkdir "${USER_DATA_COMMON}/.ssh"
-    $SNAP/usr/bin/ssh-keygen -t rsa -b 4096 -q -f "${USER_DATA_COMMON}/.ssh/id_rsa" -N ""
+    chmod 0700 "${USER_DATA_COMMON}"
+
+    echo "The following public-key:"
+    echo "> > > > > > > > > > > > >"
+    echo -e "\e[32m`cat "${SSH_KEY}"`\e[0m"
+    echo "> > > > > > > > > > > > >"
+    echo "must be copied to the file: "
+    echo "> `get_user_home "${USER}"`/.ssh/authorized_keys"
+    echo ""
+    echo "You can also add the key with the following command:"
+    echo ""
+    echo -e "$ \e[32macme-sh.pub-key >> `get_user_home "${USER}"`/.ssh/authorized_keys\e[0m \\"
+    echo -e "  \e[32m&& chmod 0600 `get_user_home "${USER}"`/.ssh/authorized_keys\e[0m"
+    echo ""
+    echo "This is important if you want the daemon to be able"
+    echo "to renew your certificates."
+    echo ""
+    echo "If you only want to update your certificates manually"
+    echo "then you'll just skip this step."
 fi
 
-
-# source "${SNAP}/helper/functions"
 #
 # if [ `amiroot` != "root" ]; then
 #     echo "Run as sudo, 'sudo acme-sh.init'"
