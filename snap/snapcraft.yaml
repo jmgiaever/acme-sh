@@ -154,6 +154,7 @@ parts:
       connect: bin/connect
       publish-daemon: bin/publish-daemon
     stage-packages:
-      - sudo
+      - openssh-client
+    #   - sudo
     #   - gpg
     #   - gpg-agent

@@ -3,12 +3,15 @@
 
 set -x
 
-if [ `amiroot` = "root" ]; then
-    if [ ! -d "${USER_COMMON}" ]; then 
-        mkdir 
+USER_DATA_COMMON="${SNAP_COMMON}/user-data/${USER}"
 
-mkdir "${SNAP_COMMON}/user-data/${USER}"
-chmod 0700 "${SNAP_COMMON}/user-data/${USER}"
+if [ ! -d "${USER_DATA_COMMON}" ]; then
+    mkdir "${USER_DATA_COMMON}"
+    chmod 0700 "${SNAP_COMMON}"
+    mkdir "${USER_DATA_COMMON}/.ssh"
+    ssh-keygen -t rsa -b 4096 -q -f "${USER_DATA_COMMON}/.ssh/id_rsa" -N ""
+fi
+
 
 # source "${SNAP}/helper/functions"
 #
