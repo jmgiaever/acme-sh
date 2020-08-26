@@ -9,7 +9,7 @@ if [ ! -d "${USER_DATA_COMMON}" ]; then
     mkdir "${USER_DATA_COMMON}"
     chmod 0700 "${SNAP_COMMON}"
     mkdir "${USER_DATA_COMMON}/.ssh"
-    ssh-keygen -t rsa -b 4096 -q -f "${USER_DATA_COMMON}/.ssh/id_rsa" -N ""
+    $SNAP/usr/bin/ssh-keygen -t rsa -b 4096 -q -f "${USER_DATA_COMMON}/.ssh/id_rsa" -N ""
 fi
 
 
