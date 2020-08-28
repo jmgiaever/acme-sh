@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-cat "${SNAP_COMMON}/user-data/id_rsa_4096.pub"
+source "${SNAP}/helper/variables"
+cat "${SSH_PUB_KEY}"

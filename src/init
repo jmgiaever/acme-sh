@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #printenv
 
+source "${SNAP}/helper/variables"
 source "${SNAP}/helper/functions"
 
 if [ `amiroot` = "root" ]; then
@@ -8,26 +9,35 @@ if [ `amiroot` = "root" ]; then
     exit 1
 fi
 
-USER_DATA_COMMON="${SNAP_COMMON}/user-data/${USER}"
+USER_DATA="${COMMON_USER_DIR}/${USER}"
 
-if [ ! -d "${USER_DATA_COMMON}" ]; then
-    SSH_KEY="${SNAP_COMMON}/user-data/id_rsa_4096.pub"
-    if [ ! -f "${SSH_KEY}"  ]; then
-        echo "Error creating user-config."
+export LE_CONFIG_HOME="${USER_DATA}"
+export ACCOUNT_CONF_PATH="${LE_CONFIG_HOME}/account.sh.env"
+export CERT_HOME="${LE_CONFIG_HOME}/certs"
+export CA_HOME="${LE_CONFIG_HOME}/ca"
+
+if [ ! -d "${USER_DATA}" ]; then
+    if [ ! -f "${SSH_PUB_KEY}" ]; then
+        echo "Error: Public key is missing."
         exit 1
     fi
 
-    mkdir "${USER_DATA_COMMON}"
-    chmod 0700 "${USER_DATA_COMMON}"
+    mkdir "${USER_DATA}"
+    chmod 0700 "${USER_DATA}"
 
+    echo ""
+    echo "Regarding automatic renewal"
+    echo ""
     echo "The following public-key:"
     echo "> > > > > > > > > > > > >"
-    echo -e "\e[32m`cat "${SSH_KEY}"`\e[0m"
+    echo ""
+    echo -e "\e[32m`cat "${SSH_PUB_KEY}"`\e[0m"
+    echo ""
     echo "> > > > > > > > > > > > >"
     echo "must be copied to the file: "
     echo "> `get_user_home "${USER}"`/.ssh/authorized_keys"
     echo ""
-    echo "You can also add the key with the following command:"
+    echo "You can add the key with the following command:"
     echo ""
     echo -e "$ \e[32macme-sh.pub-key >> `get_user_home "${USER}"`/.ssh/authorized_keys\e[0m \\"
     echo -e "  \e[32m&& chmod 0600 `get_user_home "${USER}"`/.ssh/authorized_keys\e[0m"
@@ -35,130 +45,71 @@ if [ ! -d "${USER_DATA_COMMON}" ]; then
     echo "This is important if you want the daemon to be able"
     echo "to renew your certificates."
     echo ""
-    echo "If you only want to update your certificates manually"
-    echo "then you'll just skip this step."
+    echo "If you want to update your certificates manually, just"
+    echo "skip this step."
+    echo ""
+    read -p "Press any key when you're ready to resume."
+
+    touch "${ACCOUNT_CONF_PATH}"
+    mkdir "${CERT_HOME}"
+    mkdir "${CA_HOME}"
+
+    echo ""
+    echo "Please take your time to read the help 'acme-sh --help', and"
+    echo " - "https://github.com/acmesh-official/acme.sh
+    echo ""
+    echo "If you want to use the DNS manual mode, READ this:"
+    echo " - https://github.com/acmesh-official/acme.sh/wiki/dns-manual-mode"
+    echo " - https://github.com/acmesh-official/acme.sh#9-use-dns-manual-mode"
+    echo " - AND note that adding the TXT-record to your DNS can take time to"
+    echo "   update. It's recommended to wait 10 minutes between --issue and --renew"
+    echo ""
+    echo "For apps that need to read certificates, they must support the 'certs'"
+    echo "plug and be connected throug plugs/slots and by acme-sh.connect."
+    echo "However classic snaps can read it from your home directory."
+    echo ""
+    echo "Do not manually edit any of the data in the diretory: ${LOCAL_USER_DIR}"
+    echo " - yes, we know you have 'rwx'-rights - but let's acme-sh manage them."
+    echo ""
+    read -p "Press any key when you're ready to resume."
 fi
 
-#
-# if [ `amiroot` != "root" ]; then
-#     echo "Run as sudo, 'sudo acme-sh.init'"
-#     exit 1
-# fi
-#
-# USER=`get_real_user`
-#
-# if [ $? -ne 0 ]; then
-#     echo "Unknown user.."
-#     exit 1
-# fi
-#
-# HOME=`get_user_home "${USER}"`
-#
-# if [ $? -ne 0 ]; then
-#     echo "Unknown homedir"
-# fi
-#
-# echo "User '${USER}' lives in ${HOME}"
-#
-#
-# INSTANCE_HOME="${HOME}/snap/${SNAP_INSTANCE_NAME}/${SNAP_REVISION}"
-#
-# #TODO FIX INSTANCE HOME:
-#
-# ls -al "${INSTANCE_HOME}/"
-# $SNAP/usr/bin/sudo -u "${USER}" ls -al "${INSTANCE_HOME}"
-#
-# if [ ! -d "${INSTANCE_HOME}/certs" ]; then
-#     $SNAP/usr/bin/sudo -u "${USER}" mkdir "${INSTANCE_HOME}/certs"
-#     ls -al "${INSTANCE_HOME}/"
-# fi
+LOCATIONS=(
+${ACCOUNT_CONF_PATH}
+${CERT_HOME}
+${CA_HOME}
+)
 
-# if [ `whoami` != "root" ]; then
-#     echo "Run as sudo, 'sudo acme-sh.init'"
-#     exit 1
+if [ ! -d "${LE_CONFIG_HOME}" ]; then
+    echo "Config-home is missing"
+    exit 1
+fi
+
+for DIR in "${LOCATIONS[@]}"; do
+    if [ -d "${DIR}" -a -x "${DIR}" ]; then
+        if [[ -r "${DIR}" ]] || [[ -w "${DIR}" ]]; then
+            continue
+        fi
+    elif [ -w "${DIR}" -a -r "${DIR}" ]; then
+        if [[ -r "${DIR}" ]] || [[ -w "${DIR}" ]]; then
+            continue
+        fi
+    fi
+    echo "Error: ${DIR} is missing or has invalid permissions."
+    exit 1
+done
+# if [ -z "${SUDO_USER}" ]; then
+#     for XARG in "$@"; do
+#         if [ "${XARG}" = "--renew" ]; then
+#             echo -e "\e[31mManual renewal of a certificate wont update the connection between other\e[0m"
+#             echo -e "\e[31msnaps. To force a new connection, run 'acme-sh.connect' again after the renewal.\e[0m"
+#             echo -e "\e[31mThe\e[1m 'renew-daemon' will auto-update\e[0m \e[31mconnections when certificates renews.\e[0m"
+#             echo ""
+#             read -p "Press C+ENTER to cancel and wait for an auto-update, or any other key to resume: " INPUT
+#             case "${INPUT^}" in
+#                 "C") exit 1 ;;
+#             esac
+#         fi
+#     done
 # fi
-#
-# USR="${SUDO_USER}"
-# LOG="${SNAP_DATA}/init.${USR}.log"
-#
-# touch $LOG
-# date >> $LOG
-#
-# USR_DIR="${SNAP_DATA}/${USR}"
-#
-# VERBOSE=0
-#
-# while [ "${1}" != "" ]; do
-#     case "${1}" in
-#         "-f" | "--force") shift
-#             rm -r "${USR_DIR}" >> $LOG
-#             if [ $? -eq 0 ]; then
-#                 rm "${LOG}"
-#                 touch "${LOG}"
-#                 date >> $LOG
-#                 echo "Deleted ${USR_DIR}" >> $LOG
-#             else
-#                 echo "${USR_DIR} does not exist" >> $LOG
-#             fi
-#             ;;
-#         "-v" | "--verbose") shift
-#             VERBOSE=1
-#             ;;
-#         "-h" | "--help")
-#             echo "-f: delete ${USR}-folder and re-create"
-#             echo "-v: output a diagnostic for every file processed"
-#             exit 0
-#             ;;
-#         *) echo "See: $0 --help"
-#             exit 1;;
-#     esac
-#     shift
-# done
-#
-# if [ -d "${USR_DIR}" ]; then
-#     echo "Directory ${USR_DIR} exists" >> $LOG
-# else
-#     echo "Creating ${USR_DIR}" >> $LOG
-#     mkdir "${USR_DIR}" || echo "Failed creating ${USR_DIR}" >> $LOG
-# fi
-#
-# ACCOUNT_CONF="${USR_DIR}/account.sh.env"
-# if [ -e "${ACCOUNT_CONF}" ]; then
-#     echo "File ${ACCOUNT_CONF} exists" >> $LOG
-# else
-#     echo "Touching file ${ACCOUNT_CONF}" >> $LOG
-#     touch "${ACCOUNT_CONF}" || echo "Error creating dir ${ACCOUNT_CONF}" >> $LOG
-# fi
-#
-# CERT_HOME="${USR_DIR}/certs"
-# if [ -d "${CERT_HOME}" ]; then
-#     echo "Directory ${CERT_HOME} exists" >> $LOG
-# else
-#     echo "Creating ${CERT_HOME}" >> $LOG
-#     mkdir "${CERT_HOME}" || echo "Failed creating ${CERT_HOME}" >> $LOG
-# fi
-#
-# CA_HOME="${USR_DIR}/ca"
-# if [ -d "${CA_HOME}" ]; then
-#     echo "Directory ${CA_HOME} exists" >> $LOG
-# else
-#     echo "Creating ${CA_HOME}" >> $LOG
-#     mkdir "${CA_HOME}" || echo "Failed creating ${CA_HOME}" >> $LOG
-# fi
-#
-# GROUP=`groups ${USR} | cut -d ' ' -f3`
-# echo "Setting ownership to ${USR}:${GROUP}" >> $LOG
-# chown ${USR}:${GROUP} -R "${USR_DIR}" >> $LOG
-#
-# echo "Setting permissions" >> $LOG
-# find ${USR_DIR} -type d -exec chmod 0700 {} + >> $LOG
-# find ${USR_DIR} -type f -exec chmod 0600 {} + >> $LOG
-#
-# ls -al ${SNAP_DATA}/ | grep "${USR} ${GROUP}" >> $LOG
-#
-# if [ $VERBOSE -eq 1 ]; then
-#     cat $LOG
-# fi
-#
-# echo "Initialized for user ${USR}, now run 'acme-sh' as user ${USR}"
-# exit 0
+eval $@ 

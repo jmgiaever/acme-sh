@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
 
-# if [[ `whoami` != "root" ]]; then
-#     exit 1
-# fi
+source "${SNAP}/helper/functions"
+source "${SNAP}/helper/variables"
+
+if [[ `amiroot` != "root" ]]; then
+    echo "Not root `amiroot`"
+    exit 1
+fi
+
+readarray -d '' USERS < <(find "${COMMON_USER_DIR}" -maxdepth 1 -type d -not -path "${COMMON_USER_DIR}" -print0)
+
+for USER in "${USERS[@]}"; do
+    ssh -i "${SNAP_USER_DATA}/.ssl/id_rsa_4096" \
+        -F "${SNAP_USER_DATA}/.ssl" \
+        -o BatchMode=yes \
+        -o StrictHostKeyChecking=accept-new \
+        -o UserKnownHostsFile="${SNAP_USER_DATA}/.ssl/known_hosts" \
+    -l `basename "${USER}"` localhost -n 'acme-sh.renew-all' 
+done
 #
 # source "${SNAP}/helper/functions"
 #

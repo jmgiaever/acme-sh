@@ -25,6 +25,8 @@ description: |
   - crontabs (instead it uses a daemon)
   - running commands outside of its own filesystem
     - but if you need to copy certificates, see the certs-plug 
+assumes: 
+  - command-chain
 
 grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
@@ -34,51 +36,37 @@ architectures:
   - build-on: amd64
 
 apps:
-  init:
+  acme-sh:
     environment:
       LE_WORKING_DIR: $SNAP
-      USER_DATA: $SNAP_DATA
-    command-chain: [ bin/uinit ]
-    command: bin/init
+    command-chain: [ bin/init ]
+    command: bin/acme.sh
+    plugs:
+      - network
+      - network-bind
+  connect:
+    command: bin/connect
+    plugs:
+      - certs
+  dns-manual:
+    environment:
+      LE_WORKING_DIR: $SNAP
+    command-chain: [ bin/init ]
+    command: bin/acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
     plugs:
       - network
       - network-bind
   pub-key:
     command: bin/pub-key
   renew-daemon:
-    environment:
-      LE_WORKING_DIR: $SNAP
-    daemon: oneshot
-    restart-condition: always
-    timer: 00:00~24:00/1440
+    # daemon: oneshot
+    # restart-condition: always
+    # timer: 00:00~24:00/1440
     command: bin/renew-daemon
     plugs:
       - network
       - network-bind
-  #read: ${HOME}/snap/${SNAP_INSTANCE_NAME}
-#   dns-manual:
-#     environment:
-#       LE_WORKING_DIR: $SNAP
-#       USER_DATA: $SNAP_USER_DATA
-#     command-chain: [ bin/uinit ]
-#     command: bin/acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
-#     plugs:
-#       - network
-#       - network-bind
-#   init:
-#     command: bin/init
-#     plugs:
-#       - user-data-plug
-#   connect:
-#     command: bin/connect
-#     plugs:
-#       - certs
-#       - user-data-plug
-#       - network
-#       - network-bind
-      # - certs
-    # slots:
-    #   - user-data-slot
+      - certs
 #   publish-daemon:
 #     daemon: oneshot
 #     restart-condition: always
@@ -87,74 +75,58 @@ apps:
 #     plugs:
 #       - certs
 #
-# plugs:
-#   certs:
-#     interface: content
-#     content: certs
-#     target: $SNAP_DATA/certs
-#   user-data-plug:
-#     interface: content
-#     content: user-data
-#     target: $SNAP_DATA/user_data
-#     default-provider: acme-sh
-#
-# slots:
-#   user-data-slot:
-#     interface: content
-#     content: user-data
-#     write:
-#       - $SNAP_DATA/user_data
-#
-# hooks:
-#   connect-plug-certs:
-#     plugs: [certs]
-#
+plugs:
+  certs:
+    interface: content
+    content: certs
+    target: $SNAP_DATA/certs
+
+hooks:
+  connect-plug-certs:
+    plugs: [certs]
+
 parts:
-#   acme-sh:
-#     plugin: nil
-#     source: https://github.com/acmesh-official/acme.sh.git
-#     source-tag: ${SNAPCRAFT_PROJECT_VERSION}
-#     override-build: |
-#       set -e
-#       sed -i 's#DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"#DEFAULT_INSTALL_HOME="$SNAP/.$PROJECT_NAME"#g' $SNAPCRAFT_PART_BUILD/acme.sh
-#       echo $SNAPCRAFT_PART_INSTALL
-#       export LE_CONFIG_HOME=$SNAPCRAFT_PART_INSTALL
-#       export LE_WORKING_DIR=$SNAPCRAFT_PART_INSTALL
-#       export HOME=$SNAPCRAFT_PART_INSTALL
-#       ${SNAPCRAFT_PART_BUILD}/acme.sh --install --nocron
-#       chmod a+x ${SNAPCRAFT_PART_INSTALL}/acme.sh
-#       sed -i 's#LE_WORKING_DIR="/root/parts/acme-sh/install"#LE_WORKING_DIR="$SNAP"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
-#       sed -i 's#acme.sh="/root/parts/acme-sh/install/acme.sh"#acme.sh="$SNAP/acme.sh"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
-#     stage:
-#       - bin/acme.sh
-#       - acme.sh.env
-#       - account.conf
-#       - deploy
-#       - dnsapi
-#       - notify
-#       - etc
-#       - usr
-#       - var
-#     stage-packages:
-#       - openssl
-#       - cron
-#       - socat
-#       - curl
-#     organize:
-#       acme.sh: bin/acme.sh
+  acme-sh:
+    plugin: nil
+    source: https://github.com/acmesh-official/acme.sh.git
+    source-tag: ${SNAPCRAFT_PROJECT_VERSION}
+    override-build: |
+      set -e
+      sed -i 's#DEFAULT_INSTALL_HOME="$HOME/.$PROJECT_NAME"#DEFAULT_INSTALL_HOME="$SNAP/.$PROJECT_NAME"#g' $SNAPCRAFT_PART_BUILD/acme.sh
+      echo $SNAPCRAFT_PART_INSTALL
+      export LE_CONFIG_HOME=$SNAPCRAFT_PART_INSTALL
+      export LE_WORKING_DIR=$SNAPCRAFT_PART_INSTALL
+      export HOME=$SNAPCRAFT_PART_INSTALL
+      ${SNAPCRAFT_PART_BUILD}/acme.sh --install --nocron
+      chmod a+x ${SNAPCRAFT_PART_INSTALL}/acme.sh
+      sed -i 's#LE_WORKING_DIR="/root/parts/acme-sh/install"#LE_WORKING_DIR="$SNAP"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
+      sed -i 's#acme.sh="/root/parts/acme-sh/install/acme.sh"#acme.sh="$SNAP/acme.sh"#g' $SNAPCRAFT_PART_INSTALL/acme.sh.env
+    stage:
+      - bin/acme.sh
+      - acme.sh.env
+      - account.conf
+      - deploy
+      - dnsapi
+      - notify
+      - etc
+      - usr
+    stage-packages:
+      - openssl
+      - socat
+      - curl
+    organize:
+      acme.sh: bin/acme.sh
   scripts:
     plugin: dump
     source: ./src
     source-type: local
     organize:
+      connect: bin/connect
       init: bin/init
       pub-key: bin/pub-key
-      uinit: bin/uinit
-      renew-daemon: bin/renew-daemon
-      connect: bin/connect
       publish-daemon: bin/publish-daemon
+      renew-daemon: bin/renew-daemon
     stage-packages:
       - openssh-client
-    #   - sudo
-    #   - gpg
-    #   - gpg-agent
+      - gpg
+      - gpg-agent

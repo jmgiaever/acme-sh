@@ -1,127 +1,130 @@
 #!/usr/bin/env bash
-#
-# snapctl is-connected certs
-#
-# if [ $? -ne 0 ]; then
-#     echo "No connected interfaces"
-#     exit 1
-# fi
-#
-# source "${SNAP}/helper/functions"
-#
-# CERTS_DIR="${SNAP_DATA}/${USER}"
-# KEYS_DIR="${SNAP_DATA}/.keys"
-#
-# if [[ `whoami` == "root" ]]; then
-#     CERTS_DIR="${SNAP_DATA}"
-# fi
-#
-# logger "(${USER}) Looking for certs in ${CERTS_DIR}"
-#
-# if ! [[ -d "${CERTS_DIR}" ]]; then
-#     echo "No certificates for current user, have you run 'sudo acme-sh.init'?"
-#     exit 1
-# fi
-#
-# readarray -d '' FILES < <(find ${CERTS_DIR} -type f -name "*.conf" -print0)
-#
-# if [ ${#FILES[@]} -eq 0 ]; then
-#     echo "No certificates available for current user"
-#     exit 1
-# fi
-#
-# function test_no {
-#     [ -n "${1}" ] && [ "${1}" -eq "${1}" ] 2>/dev/null
-#     if [ $? -ne 0 ] || [ "${1}" -lt 1 ] || [ "${1}" -gt ${2} ]; then
-#         return 1
-#     fi
-#     return 0
-# }
-#
-# VALID_CERTS=()
-#
-# for FILE in "${FILES[@]}"; do
-#     if [[ "${FILE}" =~ \.csr.conf$ ]]; then
-#         continue
-#     fi
-#     source "${FILE}"
-#     if [ -n "${Le_CertCreateTime}" ] && [ -n "${Le_NextRenewTime}" ]; then
-#         NOW=`date +"%s"`
-#         if [ "${Le_NextRenewTime}" -lt "${NOW}" ]; then
-#             echo "Cert `str_cert "${FILE} is expired"`"
-#         else
-#             if [ -n `fullchain "${FILE}"` ] && [ -n `ssl_cert "${FILE}"` ] && [ -n `ssl_key "${FILE}"` ]; then
-#                 VALID_CERTS+=( "${FILE}" )
-#             fi
-#         fi
-#     fi;
-#     while read -r LINE; do
-#         XLINE=`echo $LINE | cut -d'=' -f1`
-#         if [[ "${XLINE}" != "" ]]; then
-#             unset $XLINE
-#         fi
-#     done < "${FILE}"
-# done
-#
-# if [ ${#VALID_CERTS} -eq 0 ]; then
-#     echo "No valid certificates available for current user"
-#     exit 1
-# fi
-#
-#
-# function choose_cert {
-#     echo -e "\nChoose certificate"
-#     for (( i=0; i<${#VALID_CERTS[@]}; i++ )); do
-#         echo "`expr ${i} + 1`: `str_cert ${VALID_CERTS[$i]}`"
-#     done
-#     read -p "Select a cetificate to expose [1 - ${#VALID_CERTS[@]}]: " CERT_NO
-#
-#     test_no "${CERT_NO}" "${#VALID_CERTS[@]}"
-#     if [ $? -ne 0 ]; then
-#         echo -e "\n! Invalid certificate option: ${CERT_NO}, try again"
-#         choose_cert
-#         return $?
-#     fi
-#
-#     CERT="${VALID_CERTS[`expr ${CERT_NO} - 1`]}"
-#     echo -e "\n= You choose certificate `str_cert "${CERT}"`"
-#     choose_connection "${CERT}"
-# }
-#
-# function choose_connection {
-#     echo -e "\nChoose connection for `str_cert "${1}"`"
-#
-#     readarray -d '' CONNECTIONS < <(find "${KEYS_DIR}" -type f -print0 -name "*pub")
-#
-#     for (( i=0; i<${#CONNECTIONS[@]}; i++ )); do
-#         echo "`expr ${i} + 1`: `str_connection "${CONNECTIONS[${i}]}"`"
-#     done
-#
-#     read -p "Choose connection [1 - ${#CONNECTIONS[@]}]: " CONN_NO
-#
-#     test_no "${CONN_NO}" "${#CONNECTIONS[@]}"
-#     if [ $? -ne 0 ]; then
-#         echo -e "\n! Invalid connection option: ${CONN_NO}, try again"
-#         choose_connection "${1}"
-#         return $?
-#     fi
-#
-#     CONNECTION="${CONNECTIONS[`expr ${CONN_NO} - 1`]}"
-#     echo -e "\n= You choose connection `str_connection "${CONNECTION}"`"
-#     CERT_GPG="`dirname "${1}"`/`basename "${CONNECTION}"`"
-#
-#     if [ -f "${CERT_GPG}" ]; then
-#         rm -f "${CERT_GPG}"
-#         if [ $? -ne 0 ]; then
-#             echo "Permission denied"
-#             exit 1
-#         fi
-#     fi
-#
-#     cp "${CONNECTION}" "${CERT_GPG}"
-#
-#     gpg_start_agent
-#     gpg_encrypt_cert "${1}" "${CONNECTION}" "${CERT_GPG}"
-# }
-#
-# choose_cert
+
+snapctl is-connected certs
+
+if [ $? -ne 0 ]; then
+     echo "No connected interfaces"
+    exit 1
+fi
+
+source "${SNAP}/helper/functions"
+source "${SNAP}/helper/variables"
+
+USER_DATA="${COMMON_USER_DIR}/${USER}"
+
+logger "(${USER}) Looking for certs in ${USER_DATA}"
+
+if ! [[ -d "${USER_DATA}" ]]; then
+    echo "No certificates for current user, have you run 'sudo acme-sh.init'?"
+    exit 1
+fi
+
+readarray -d '' CONFS < <(find "${USER_DATA}" -type f -name "*.conf" -not -path "${USER_DATA}/ca/*" -not -name "*csr.conf" -print0)
+
+if [ ${#CONFS[@]} -eq 0 ]; then
+    echo "No certificates available for current user"
+    exit 1
+fi
+
+logger "Found configurations ${CONFS[@]}"
+
+function test_no {
+    [ -n "${1}" ] && [ "${1}" -eq "${1}" ] 2>/dev/null
+    if [ $? -ne 0 ] || [ "${1}" -lt 1 ] || [ "${1}" -gt ${2} ]; then
+        return 1
+    fi
+    return 0
+}
+
+VALID_CERTS=()
+
+for CONF in "${CONFS[@]}"; do
+    if [[ "${CONF}" =~ \.csr.conf$ ]]; then
+        continue
+    fi
+    source "${CONF}"
+    if [ -n "${Le_CertCreateTime}" ] && [ -n "${Le_NextRenewTime}" ]; then
+        echo "${CONF}"
+        if [ -n `fullchain "${CONF}"` -a -n `ssl_cert "${CONF}"` -a -n `ssl_key "${CONF}"` ]; then
+            # NOW=`date +"%s"`
+            # if [ "${Le_NextRenewTime}" -lt "${NOW}" ]; then
+            #     echo "Cert `str_cert "${CONF}"` is expired"
+            # fi
+            VALID_CERTS+=( "${CONF}" )
+        fi
+    else
+        echo "Not compatible: `basename "${CONF}"`"
+    fi;
+    while read -r LINE; do
+        VAR=`echo $LINE | cut -d'=' -f1`
+        if [[ "${VAR}" != "" ]]; then
+            unset $VAR
+        fi
+    done < "${CONF}"
+done
+
+if [ ${#VALID_CERTS} -eq 0 ]; then
+    echo "No valid certificates available for current user"
+    exit 1
+fi
+echo "${VALID_CERTS[@]}"
+set -x
+
+function choose_cert {
+    echo -e "\nChoose certificate"
+    for (( i=0; i<${#VALID_CERTS[@]}; i++ )); do
+        echo "`expr ${i} + 1`: `str_cert ${VALID_CERTS[$i]}`"
+    done
+    read -p "Select a cetificate to expose [1 - ${#VALID_CERTS[@]}]: " CERT_NO
+
+    test_no "${CERT_NO}" "${#VALID_CERTS[@]}"
+    if [ $? -ne 0 ]; then
+        echo -e "\n! Invalid certificate option: ${CERT_NO}, try again"
+        choose_cert
+        return $?
+    fi
+
+    CERT="${VALID_CERTS[`expr ${CERT_NO} - 1`]}"
+    echo -e "\n= You choose certificate `str_cert "${CERT}"`"
+    choose_connection "${CERT}"
+}
+
+function choose_connection {
+    echo -e "\nChoose connection for `str_cert "${1}"`"
+
+    readarray -d '' CONNECTIONS < <(find "${COMMON_KEYS}" -type f -print0 -name "*.pub")
+
+    for (( i=0; i<${#CONNECTIONS[@]}; i++ )); do
+        echo "`expr ${i} + 1`: `str_connection "${CONNECTIONS[${i}]}"`"
+    done
+
+    read -p "Choose connection [1 - ${#CONNECTIONS[@]}]: " CONN_NO
+
+    test_no "${CONN_NO}" "${#CONNECTIONS[@]}"
+    if [ $? -ne 0 ]; then
+        echo -e "\n! Invalid connection option: ${CONN_NO}, try again"
+        choose_connection "${1}"
+        return $?
+    fi
+
+    CONNECTION="${CONNECTIONS[`expr ${CONN_NO} - 1`]}"
+    echo -e "\n= You choose connection `str_connection "${CONNECTION}"`"
+
+    CERT_GPG="`dirname "${1}"`/`basename "${CONNECTION}"`"
+
+    if [ -f "${CERT_GPG}" ]; then
+        rm -f "${CERT_GPG}"
+        if [ $? -ne 0 ]; then
+            echo "Permission denied"
+            exit 1
+        fi
+    fi
+
+    ln -s "${CONNECTION}" "${CERT_GPG}"
+
+    # gpg_start_agent
+    # gpg_encrypt_cert "${1}" "${CONNECTION}" "${CERT_GPG}"
+    # gpg_close_agent
+}
+
+choose_cert

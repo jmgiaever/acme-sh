@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+source "${SNAP}/meta/hooks/install"

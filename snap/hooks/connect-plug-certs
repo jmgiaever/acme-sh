@@ -1,33 +1,32 @@
 #!/usr/bin/env bash
-#
-# CONN_SNAP=`snapctl get --slot :certs snapname`
-# CONN_UUID=`snapctl get --slot :certs uuid`
-# CONN_PKEY=`snapctl get --slot :certs pkey`
-#
-# if [ -z "${CONN_SNAP}" ]; then
-#     echo "Parameter 'snapname' is missing"
-#     echo "Are your sure your app supports this plug?"
-#     exit 1
-# fi
-#
-# if [ -z "${CONN_UUID}" ]; then
-#     echo "Parameter 'pkey' is missing"
-#     echo "Are your sure your app supports this plug?"
-#     exit 1
-# fi
-#
-# if [ -z "${CONN_PKEY}" ]; then
-#     echo "Parameter 'pkey' is missing"
-#     echo "Are your sure your app supports this plug?"
-#     exit 1
-# fi
-#
-# KEY_DIR="${SNAP_DATA}/.keys/"
-#
-# logger "Connecting from ${CONN_SNAP} (uuid: ${CONN_UUID})."
-# CERTS_DIR="${SNAP_DATA}/certs"
-#
-# mkdir "${KEY_DIR}" || true
-#
-# logger "Storing GPG-key to ${CONN_SNAP}-${CONN_UUID}.pub"
-# echo -e "${CONN_PKEY}" > "${KEY_DIR}/${CONN_SNAP}-${CONN_UUID}.pub"
+
+CONN_SNAP=`snapctl get --slot :certs snapname`
+CONN_UUID=`snapctl get --slot :certs uuid`
+CONN_PKEY=`snapctl get --slot :certs pkey`
+
+if [ -z "${CONN_SNAP}" ]; then
+    echo "Parameter 'snapname' is missing"
+    echo "Are your sure your app supports this plug?"
+    exit 1
+fi
+
+if [ -z "${CONN_UUID}" ]; then
+    echo "Parameter 'uuid' is missing"
+    echo "Are your sure your app supports this plug?"
+    exit 1
+fi
+
+if [ -z "${CONN_PKEY}" ]; then
+    echo "Parameter 'pkey' is missing"
+    echo "Are your sure your app supports this plug?"
+    exit 1
+fi
+
+source "${SNAP}/helper/variables"
+
+logger "Connecting from ${CONN_SNAP} (uuid: ${CONN_UUID})."
+logger "Storing GPG-key to ${CONN_SNAP}_${CONN_UUID}.pub"
+
+KEY="${COMMON_KEYS}/${CONN_SNAP}_${CONN_UUID}.pub"
+echo -e "${CONN_PKEY}" > "${KEY}"
+chmod 1644 "${KEY}"

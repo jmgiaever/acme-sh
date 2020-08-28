@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
 set -ex
 
-USER_DATA_COMMON="${SNAP_COMMON}/user-data"
-mkdir "${USER_DATA_COMMON}"
-chmod 1777 "${USER_DATA_COMMON}"
+source "${SNAP}/helper/variables"
 
-SSL_DIR="${SNAP_USER_DATA}/.ssl"
-if [ ! -d "${SSL_DIR}" ]; then
-    mkdir "${SSL_DIR}" || (echo "Failed creating ${SSL_DIR}" && exit 1)
+if [ ! -d "${COMMON_USER_DIR}" ]; then
+    mkdir "${COMMON_USER_DIR}"
+    chmod 1777 "${COMMON_USER_DIR}"
 fi
 
-SSL_KEY="${SSL_DIR}/id_rsa_4096"
-
-if [ ! -f "$SSH_KEY" ]; then
-    $SNAP/usr/bin/ssh-keygen -t rsa -b 4096 -q -f "${SSL_KEY}" -N ""
-    mv "${SSL_KEY}.pub" "${USER_DATA_COMMON}"
-    chmod 544 "${USER_DATA_COMMON}/`basename "${SSL_KEY}.pub"`"
+if [ ! -d "${COMMON_KEYS}" ]; then
+    mkdir "${COMMON_KEYS}"
+    chmod 1755 "${COMMON_KEYS}"
 fi
+
+if [ ! -d "${SSH_DIR}" ]; then
+    mkdir "${SSH_DIR}" || (echo "Failed creating ${SSH_DIR}" && exit 1)
+fi
+
+if [ ! -f "${SSH_KEY}" ]; then
+    $SNAP/usr/bin/ssh-keygen -t rsa \
+        -b 4096 -q -f "${SSH_KEY}" -N ""
+    mv "${SSH_KEY}.pub" "${SSH_PUB_KEY}"
+    chmod 1644 "${SSH_PUB_KEY}"
+fi
+

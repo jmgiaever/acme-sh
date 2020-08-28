@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-PUBL_CERTS_DIR="${SNAP_DATA}/certs"
-
 function amiroot {
     if [ `id -gn` = "root" ]; then
         echo "root"
@@ -38,6 +36,7 @@ function str_cert {
 }
 
 function f_exists_echo {
+    logger "Checking for ${1}"
     if [ -f "${1}" ]; then
         echo "${1}"
         return 0
@@ -100,20 +99,15 @@ function gpg_encrypt_cert {
     NEW_SSL_CERT_BASE="`str_connection "${2}"`_`basename "${SSL_CERT}"`.gpg"
     NEW_SSL_KEY_BASE="`str_connection "${2}"`_`basename "${SSL_KEY}"`.gpg"
 
-    if [ `whoami` = "root" ]; then
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${CA}"
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" -e "${FULLCHAIN}"
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${SSL_CERT}"
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PUBL_CERTS_DIR}/${NEW_SSL_KEY_BASE}" -e "${SSL_KEY}"
-        echo "New certificates published to the certificate (public) directory within `str_connection "${2}"`."
-    else
-        PRIVATE_CERTS_DIR=`dirname "${1}"`
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_CA_BASE}" -e "${CA}"
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" -e "${FULLCHAIN}"
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${SSL_CERT}"
-        gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_KEY_BASE}" -e "${SSL_KEY}"
-        echo "New certificates will be available in the certificate directory of `str_connection "${2}"` within 5 minues."
-    fi
+    PRIVATE_CERTS_DIR=`dirname "${1}"`
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_CA_BASE}" -e "${CA}"
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" -e "${FULLCHAIN}"
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${SSL_CERT}"
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_KEY_BASE}" -e "${SSL_KEY}"
 
     rm -rd "${GPG_TMP_DIR}"
+}
+
+function update_connections {
+    echo "$@"
 }

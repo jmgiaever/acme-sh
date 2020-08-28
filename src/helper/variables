@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+export COMMON_DIR="${SNAP_COMMON}"
+export COMMON_USER_DIR="${COMMON_DIR}/user-data"
+export COMMON_KEYS="${COMMON_DIR}/.keys"
+export SSH_DIR="${SNAP_USER_DATA}/.ssl"
+export SSH_KEY="${SSH_DIR}/id_rsa"
+export SSH_PUB_KEY="${COMMON_USER_DIR}/`basename "${SSH_KEY}.pub"`"
