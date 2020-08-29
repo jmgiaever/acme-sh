@@ -61,22 +61,15 @@ apps:
   pub-key:
     command: bin/pub-key
   renew-daemon:
-    # daemon: oneshot
-    # restart-condition: always
-    # timer: 00:00~24:00/1440
+    daemon: oneshot
+    restart-condition: always
+    timer: 00:00~24:00/2
     command: bin/renew-daemon
     plugs:
       - network
       - network-bind
       - certs
-#   publish-daemon:
-#     daemon: oneshot
-#     restart-condition: always
-#     timer: 00:00-24:00/288
-#     command: bin/publish-daemon
-#     plugs:
-#       - certs
-#
+
 plugs:
   certs:
     interface: content

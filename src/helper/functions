@@ -122,8 +122,9 @@ function gpg_encrypt_cert {
         -e "${SSL_KEY}"
     rm -rf "${GPG_TMP_DIR}"
     touch "${PRIVATE_CERTS_DIR}/.time"
+    echo "Released `str_cert "${1}"` for connection `str_connection "$2"`"
+    logger "Released `str_cert "${1}"` for connection `str_connection "$2"`"
     gpg_close_agent
-
 }
 
 function update_connections {
@@ -134,14 +135,16 @@ function update_connections {
     fi
     readarray -d '' DOMAINS < <(find ${USER_DATA} -type f -name "${DOMAIN}.conf" -not -path "${USER_DATA}/ca/*" -not -name "*csr.conf" -print0)
     for DOMAIN_CONF in "${DOMAINS[@]}"; do
+        logger "Updating connection for `str_cert "${DOMAIN_CONF}"`"
         DOMAIN_DIR=`dirname "${DOMAIN_CONF}"`
         CERT_MOD=`stat "${DOMAIN_DIR}/fullchain.cer" --format="%Y"`
         readarray -d '' CONNECTIONS < <(find "${COMMON_CERTS}"* -type d -name "`basename "${DOMAIN_CONF}" ".conf"`" -print0)
-        for CONNECTION in "${CONNECTIONS}"; do
+        for CONNECTION in "${CONNECTIONS[@]}"; do
             CONN_MOD=`stat "${CONNECTION}/.time" --format="%Y" 2> /dev/null || echo 0`
             if [ "${CERT_MOD}" -gt "${CONN_MOD}" ]; then
-                KEY=`find "${CONNECTION}/../.." -maxdepth 1 -type f -name "*.pub" -print0`
+                KEY="`find "${CONNECTION}/../../" -maxdepth 1 -type f -name "*.pub" -print`"
                 if [ -r "${KEY}" ]; then
+                    logger "Certificate updated `str_connection "${KEY}"`:`str_cert "${DOMAIN_CONF}"`, releasing..."
                     gpg_encrypt_cert "${DOMAIN_CONF}" "${KEY}"
                 fi
             fi
