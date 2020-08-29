@@ -48,6 +48,8 @@ apps:
     command: bin/connect
     plugs:
       - certs
+      - network
+      - network-bind
   dns-manual:
     environment:
       LE_WORKING_DIR: $SNAP

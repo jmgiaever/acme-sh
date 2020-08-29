@@ -25,8 +25,17 @@ fi
 source "${SNAP}/helper/variables"
 
 logger "Connecting from ${CONN_SNAP} (uuid: ${CONN_UUID})."
-logger "Storing GPG-key to ${CONN_SNAP}_${CONN_UUID}.pub"
 
-KEY="${COMMON_KEYS}/${CONN_SNAP}_${CONN_UUID}.pub"
-echo -e "${CONN_PKEY}" > "${KEY}"
-chmod 1644 "${KEY}"
+readarray -d '' CERT_DIRS < <(find "${SNAP_DATA}" -maxdepth 1 -type d -name "certs*" -print0)
+
+for DIR in "${CERT_DIRS[@]}"; do
+    logger "${DIR}: `ls ${DIR} | wc -l`"
+    if [ `ls ${DIR} | wc -l` -eq 0 ]; then
+        KEY="${DIR}/${CONN_SNAP}_${CONN_UUID}.pub"
+        logger "Storing GPG-key to ${KEY}"
+        echo -e "${CONN_PKEY}" > "${KEY}"
+        chmod 1644 "${KEY}"
+        mkdir -m 1777 "${DIR}/encrypted"
+        break
+    fi
+done

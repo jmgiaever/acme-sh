@@ -8,11 +8,6 @@ if [ ! -d "${COMMON_USER_DIR}" ]; then
     chmod 1777 "${COMMON_USER_DIR}"
 fi
 
-if [ ! -d "${COMMON_KEYS}" ]; then
-    mkdir "${COMMON_KEYS}"
-    chmod 1755 "${COMMON_KEYS}"
-fi
-
 if [ ! -d "${SSH_DIR}" ]; then
     mkdir "${SSH_DIR}" || (echo "Failed creating ${SSH_DIR}" && exit 1)
 fi

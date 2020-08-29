@@ -68,10 +68,9 @@ if [ ${#VALID_CERTS} -eq 0 ]; then
     exit 1
 fi
 echo "${VALID_CERTS[@]}"
-set -x
 
 function choose_cert {
-    echo -e "\nChoose certificate"
+    echo -e "\n\e[32mChoose certificate:\e[0m"
     for (( i=0; i<${#VALID_CERTS[@]}; i++ )); do
         echo "`expr ${i} + 1`: `str_cert ${VALID_CERTS[$i]}`"
     done
@@ -79,36 +78,37 @@ function choose_cert {
 
     test_no "${CERT_NO}" "${#VALID_CERTS[@]}"
     if [ $? -ne 0 ]; then
-        echo -e "\n! Invalid certificate option: ${CERT_NO}, try again"
+        echo -e "\n\e[31m! Invalid certificate option: ${CERT_NO}, try again\e[0m"
         choose_cert
         return $?
     fi
 
     CERT="${VALID_CERTS[`expr ${CERT_NO} - 1`]}"
-    echo -e "\n= You choose certificate `str_cert "${CERT}"`"
+    echo -e "\n\e[32m= You choose certificate `str_cert "${CERT}"`\e[0m"
     choose_connection "${CERT}"
 }
 
 function choose_connection {
-    echo -e "\nChoose connection for `str_cert "${1}"`"
+    echo -e "\n\e[32mChoose connection for `str_cert "${1}"`:\e[0m"
 
-    readarray -d '' CONNECTIONS < <(find "${COMMON_KEYS}" -type f -print0 -name "*.pub")
+    readarray -d '' CONNECTIONS < <(find "${COMMON_CERTS}"* -type f -name "*.pub" -print0)
 
     for (( i=0; i<${#CONNECTIONS[@]}; i++ )); do
-        echo "`expr ${i} + 1`: `str_connection "${CONNECTIONS[${i}]}"`"
+        readarray -d _ -t CONN < <(printf "%s" "`str_connection "${CONNECTIONS[${i}]}"`")
+        echo -e "`expr ${i} + 1`: ${CONN[0]} \e[2m(uuid: ${CONN[1]})\e[0m"
     done
 
     read -p "Choose connection [1 - ${#CONNECTIONS[@]}]: " CONN_NO
 
     test_no "${CONN_NO}" "${#CONNECTIONS[@]}"
     if [ $? -ne 0 ]; then
-        echo -e "\n! Invalid connection option: ${CONN_NO}, try again"
+        echo -e "\n\e[31m! Invalid connection option: ${CONN_NO}, try again\e[0m"
         choose_connection "${1}"
         return $?
     fi
 
     CONNECTION="${CONNECTIONS[`expr ${CONN_NO} - 1`]}"
-    echo -e "\n= You choose connection `str_connection "${CONNECTION}"`"
+    echo -e "\n= \e[32mYou choose connection `str_connection "${CONNECTION}"`\e[0m"
 
     CERT_GPG="`dirname "${1}"`/`basename "${CONNECTION}"`"
 
@@ -120,11 +120,7 @@ function choose_connection {
         fi
     fi
 
-    ln -s "${CONNECTION}" "${CERT_GPG}"
-
-    # gpg_start_agent
-    # gpg_encrypt_cert "${1}" "${CONNECTION}" "${CERT_GPG}"
-    # gpg_close_agent
+    gpg_encrypt_cert "${1}" "${CONNECTION}"
 }
 
 choose_cert

@@ -98,18 +98,29 @@ for DIR in "${LOCATIONS[@]}"; do
     echo "Error: ${DIR} is missing or has invalid permissions."
     exit 1
 done
-# if [ -z "${SUDO_USER}" ]; then
-#     for XARG in "$@"; do
-#         if [ "${XARG}" = "--renew" ]; then
-#             echo -e "\e[31mManual renewal of a certificate wont update the connection between other\e[0m"
-#             echo -e "\e[31msnaps. To force a new connection, run 'acme-sh.connect' again after the renewal.\e[0m"
-#             echo -e "\e[31mThe\e[1m 'renew-daemon' will auto-update\e[0m \e[31mconnections when certificates renews.\e[0m"
-#             echo ""
-#             read -p "Press C+ENTER to cancel and wait for an auto-update, or any other key to resume: " INPUT
-#             case "${INPUT^}" in
-#                 "C") exit 1 ;;
-#             esac
-#         fi
-#     done
-# fi
+
+echo $@
+
+ARGC=$#
+ARGV=("$@")
+DOMAIN=""
+RENEW=1
+for ((i = 0; i < ${ARGC}; i++)); do
+    ARGX="${ARGV[$i]}"
+    if [ "${ARGX}" = "--renew" -o "${ARGX}" = "--renew-all" ]; then
+        set -- "$@" "--yes-I-know-dns-manual-mode-enough-go-ahead-please"
+        RENEW=0
+    elif [ "${ARGX}" = "-d" -o "${ARGX}" = "--domain" ]; then
+        DOMAIN="${ARGV[`expr $i + 1`]}"
+    fi
+done
+
 eval $@ 
+RET=$?
+
+if [ "${RET}" -eq 0 -a "${RENEW}" -eq 0 ]; then
+    update_connections "${DOMAIN}"
+    exit $?
+fi
+
+exit $?

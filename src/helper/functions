@@ -36,7 +36,6 @@ function str_cert {
 }
 
 function f_exists_echo {
-    logger "Checking for ${1}"
     if [ -f "${1}" ]; then
         echo "${1}"
         return 0
@@ -70,10 +69,8 @@ function gpg_start_agent {
         gpg-agent --daemon 2> /dev/null
         if [ $? -eq 0 ]; then
             logger "GPG-agent started"
-            return 0
         fi
-        logger "Failed starting GPG-agent"
-        return 1
+        logger "Failed starting GPG-agent, trying without"
     fi
     return 0
 }
@@ -87,27 +84,67 @@ function gpg_close_agent {
 }
 
 function gpg_encrypt_cert {
-    GPG_TMP_DIR=`mktemp -d`
 
     CA=`ca_cert "${1}"`
     FULLCHAIN=`fullchain "${1}"`
     SSL_CERT=`ssl_cert "${1}"`
     SSL_KEY=`ssl_key "${1}"`
 
-    NEW_CA_BASE="`str_connection "${2}"`_`str_cert ${1}`-`basename "${CA}"`.gpg"
-    NEW_FULLCHAIN_BASE="`str_connection "${2}"`_`str_cert ${1}`-`basename "${FULLCHAIN}"`.gpg"
-    NEW_SSL_CERT_BASE="`str_connection "${2}"`_`basename "${SSL_CERT}"`.gpg"
-    NEW_SSL_KEY_BASE="`str_connection "${2}"`_`basename "${SSL_KEY}"`.gpg"
+    NEW_CA_BASE="chain.pem.gpg"
+    NEW_FULLCHAIN_BASE="fullchain.pem.gpg"
+    NEW_SSL_CERT_BASE="cert.pem.gpg"
+    NEW_SSL_KEY_BASE="privkey.pem.gpg"
 
-    PRIVATE_CERTS_DIR=`dirname "${1}"`
-    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_CA_BASE}" -e "${CA}"
-    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" -e "${FULLCHAIN}"
-    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_CERT_BASE}" -e "${SSL_CERT}"
-    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --recipient-file "${3}" -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_KEY_BASE}" -e "${SSL_KEY}"
+    PRIVATE_CERTS_DIR="`dirname "${2}"`/encrypted/`str_cert "${1}"`"
 
-    rm -rd "${GPG_TMP_DIR}"
+    if [ ! -d "${PRIVATE_CERTS_DIR}" ]; then
+        mkdir "${PRIVATE_CERTS_DIR}"
+        chmod 1755 "${PRIVATE_CERTS_DIR}"
+    fi
+
+    gpg_start_agent
+    GPG_TMP_DIR=`mktemp -d`
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --quiet \
+        --recipient-file "${2}" \
+        -o "${PRIVATE_CERTS_DIR}/${NEW_CA_BASE}" \
+        -e "${CA}"
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes -quiet \
+        --recipient-file "${2}" \
+        -o "${PRIVATE_CERTS_DIR}/${NEW_FULLCHAIN_BASE}" \
+        -e "${FULLCHAIN}"
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes --quiet \
+        --recipient-file "${2}" \
+        -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_CERT_BASE}" \
+        -e "${SSL_CERT}"
+    gpg --homedir="${GPG_TMP_DIR}" --batch --yes -quiet \
+        --recipient-file "${2}" \
+        -o "${PRIVATE_CERTS_DIR}/${NEW_SSL_KEY_BASE}" \
+        -e "${SSL_KEY}"
+    rm -rf "${GPG_TMP_DIR}"
+    touch "${PRIVATE_CERTS_DIR}/.time"
+    gpg_close_agent
+
 }
 
 function update_connections {
-    echo "$@"
+    USER_DATA="${COMMON_USER_DIR}/${USER}"
+    DOMAIN=$1
+    if [ "${DOMAIN}" = "" ]; then 
+        DOMAIN="*"
+    fi
+    readarray -d '' DOMAINS < <(find ${USER_DATA} -type f -name "${DOMAIN}.conf" -not -path "${USER_DATA}/ca/*" -not -name "*csr.conf" -print0)
+    for DOMAIN_CONF in "${DOMAINS[@]}"; do
+        DOMAIN_DIR=`dirname "${DOMAIN_CONF}"`
+        CERT_MOD=`stat "${DOMAIN_DIR}/fullchain.cer" --format="%Y"`
+        readarray -d '' CONNECTIONS < <(find "${COMMON_CERTS}"* -type d -name "`basename "${DOMAIN_CONF}" ".conf"`" -print0)
+        for CONNECTION in "${CONNECTIONS}"; do
+            CONN_MOD=`stat "${CONNECTION}/.time" --format="%Y" 2> /dev/null || echo 0`
+            if [ "${CERT_MOD}" -gt "${CONN_MOD}" ]; then
+                KEY=`find "${CONNECTION}/../.." -maxdepth 1 -type f -name "*.pub" -print0`
+                if [ -r "${KEY}" ]; then
+                    gpg_encrypt_cert "${DOMAIN_CONF}" "${KEY}"
+                fi
+            fi
+        done
+    done
 }
