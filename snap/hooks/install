@@ -14,7 +14,7 @@ fi
 
 if [ ! -f "${SSH_KEY}" ]; then
     $SNAP/usr/bin/ssh-keygen -t rsa \
-        -b 4096 -q -f "${SSH_KEY}" -N ""
+        -b 4096 -q -f "${SSH_KEY}" -N "" -C "acme-sh@localhost"
     mv "${SSH_KEY}.pub" "${SSH_PUB_KEY}"
     chmod 1644 "${SSH_PUB_KEY}"
 fi
