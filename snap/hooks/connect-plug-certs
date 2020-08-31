@@ -31,6 +31,7 @@ readarray -d '' CERT_DIRS < <(find "${SNAP_DATA}" -maxdepth 1 -type d -name "cer
 for DIR in "${CERT_DIRS[@]}"; do
     logger "${DIR}: `ls ${DIR} | wc -l`"
     if [ `ls ${DIR} | wc -l` -eq 0 ]; then
+        chmod 1755 "${DIR}"
         KEY="${DIR}/${CONN_SNAP}_${CONN_UUID}.pub"
         logger "Storing GPG-key to ${KEY}"
         echo -e "${CONN_PKEY}" > "${KEY}"
