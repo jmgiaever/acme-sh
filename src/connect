@@ -44,7 +44,6 @@ for CONF in "${CONFS[@]}"; do
     fi
     source "${CONF}"
     if [ -n "${Le_CertCreateTime}" ] && [ -n "${Le_NextRenewTime}" ]; then
-        echo "${CONF}"
         if [ -n `fullchain "${CONF}"` -a -n `ssl_cert "${CONF}"` -a -n `ssl_key "${CONF}"` ]; then
             # NOW=`date +"%s"`
             # if [ "${Le_NextRenewTime}" -lt "${NOW}" ]; then
@@ -90,7 +89,7 @@ function choose_cert {
 function choose_connection {
     echo -e "\n\e[32mChoose connection for `str_cert "${1}"`:\e[0m"
 
-    readarray -d '' CONNECTIONS < <(find "${COMMON_CERTS}"* -type f -name "*.pub" -print0)
+    readarray -d '' CONNECTIONS < <(find "${COMMON_DIR}" -path "${COMMON_CERTS}*" -type f -name "*.pub" -print0)
 
     for (( i=0; i<${#CONNECTIONS[@]}; i++ )); do
         readarray -d _ -t CONN < <(printf "%s" "`str_connection "${CONNECTIONS[${i}]}"`")
