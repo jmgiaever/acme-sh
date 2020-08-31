@@ -67,7 +67,6 @@ if [ ${#VALID_CERTS} -eq 0 ]; then
     echo "No valid certificates available for current user"
     exit 1
 fi
-echo "${VALID_CERTS[@]}"
 
 function choose_cert {
     echo -e "\n\e[32mChoose certificate:\e[0m"

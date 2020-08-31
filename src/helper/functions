@@ -138,8 +138,8 @@ function update_connections {
         logger "Updating connection for `str_cert "${DOMAIN_CONF}"`"
         DOMAIN_DIR=`dirname "${DOMAIN_CONF}"`
         CERT_MOD=`stat "${DOMAIN_DIR}/fullchain.cer" --format="%Y"`
-        if [ `ls "${COMMON_CERTS}"* 2> /dev/null | grep "certs" | wc -l` -ne 0 ]; then
-            readarray -d '' CONNECTIONS < <(find "${COMMON_CERTS}"* -type d -name "`basename "${DOMAIN_CONF}" ".conf"`" -print0)
+        readarray -d '' CONNECTIONS < <(find "${COMMON_DIR}" -path "${COMMON_CERTS}*" -type d -name "`basename "${DOMAIN_CONF}" ".conf"`" -print0)
+        if [ "${#CONNECTIONS[@]}" -ne 0 ]; then
             for CONNECTION in "${CONNECTIONS[@]}"; do
                 CONN_MOD=`stat "${CONNECTION}/.time" --format="%Y" 2> /dev/null || echo 0`
                 if [ "${CERT_MOD}" -gt "${CONN_MOD}" ]; then
