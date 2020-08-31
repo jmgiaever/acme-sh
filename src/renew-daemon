@@ -10,11 +10,13 @@ fi
 
 readarray -d '' USERS < <(find "${COMMON_USER_DIR}" -maxdepth 1 -type d -not -path "${COMMON_USER_DIR}" -print0)
 
-for USER in "${USERS[@]}"; do
+for USER_DIR in "${USERS[@]}"; do
+    USER=`basename "${USER_DIR}"`
+    logger "Renew certificated for "${USER}". Logging to `get_user_home "${USER}"`/.cert-renew"
     ssh -i "${SSH_KEY}" \
         -F "${SSH_DIR}" \
         -o BatchMode=yes \
         -o StrictHostKeyChecking=accept-new \
         -o UserKnownHostsFile="${SSH_DIR}/known_hosts" \
-    -l `basename "${USER}"` localhost -n -f '/snap/bin/acme-sh --renew-all --force >> ~/.cert-renew'
+    -l "${USER}" localhost -n  '/snap/bin/acme-sh --renew-all >> ~/.cert-renew' 2> ${SNAP_DATA}/.cert-renew
 done

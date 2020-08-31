@@ -63,7 +63,7 @@ apps:
   renew-daemon:
     daemon: oneshot
     restart-condition: always
-    timer: 00:00~24:00/2
+    timer: 00:00~24:00/2 # Twice a day..
     command: bin/renew-daemon
     plugs:
       - network
@@ -109,6 +109,7 @@ parts:
       - openssl
       - socat
       - curl
+      - xxd
     organize:
       acme.sh: bin/acme.sh
   scripts:
