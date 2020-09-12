@@ -1,6 +1,6 @@
 name: acme-sh
 base: core20
-version: '2.8.6'
+version: '2.8.7'
 summary: 'An ACME Shell script: acme.sh'
 description: |
   An ACME protocol client written purely in Shell (Unix shell) language 
