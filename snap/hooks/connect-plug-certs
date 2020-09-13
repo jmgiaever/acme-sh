@@ -18,7 +18,14 @@ fi
 
 if [ -z "${CONN_PKEY}" ]; then
     echo "Parameter 'pkey' is missing"
-    echo "Are your sure your app supports this plug?"
+    echo ""
+    echo "If this happened during the installation of ${CONN_SNAP},"
+    echo "which is a known bug, please disable ${SNAP_NAME} and try again."
+    echo ""
+    echo "$ snap disable ${SNAP_NAME}"
+    echo "$ snap install ${CONN_SNAP}"
+    echo "$ snap enable ${SNAP_NAME}"
+    echo ""
     exit 1
 fi
 
