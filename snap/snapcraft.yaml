@@ -14,14 +14,12 @@ description: |
   - DOES NOT require root/sudoer access.
   - IPv6 support
   - It's probably the easiest & smartest shell script to automatically issue & renew the free certificates from Let's Encrypt.
-
   Wiki: https://github.com/acmesh-official/acme.sh/wiki
-
   BE AWARE that this version do not include all it's features, such as
   - notify
   - crontabs (instead it uses a daemon)
   - running commands outside of its own filesystem
-    - but if you need to copy certificates, see the certs-plug 
+  - but if you need to copy certificates, see the certs-plug 
 assumes: 
   - command-chain
 
