@@ -122,3 +122,4 @@ parts:
       - openssh-client
       - gpg
       - gpg-agent
+      - rsync

@@ -129,7 +129,7 @@ function gpg_encrypt_cert {
 
 function update_connections {
     USER_DATA="${COMMON_USER_DIR}/${USER}"
-    #cp -rf "${COMMON_USER_DIR}/${USER}/certs" "${SNAP_USER_DATA}/certs"
+    rsync -a "${COMMON_USER_DIR}/${USER}/certs/" "${SNAP_USER_DATA}/certs"
     DOMAIN=$1
     if [ "${DOMAIN}" = "" ]; then 
         DOMAIN="*"
