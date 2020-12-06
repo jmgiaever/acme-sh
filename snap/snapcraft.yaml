@@ -8,14 +8,11 @@ description: |
   - Support ACME v1 and ACME v2
   - Support ACME v2 wildcard certs
   - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
-  - Bash, dash and sh compatible.
   - Simplest shell script for Let's Encrypt free certificate client.
   - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
   - Just one script to issue, renew and install your certificates automatically.
   - DOES NOT require root/sudoer access.
-  - Docker friendly
   - IPv6 support
-  - Cron job notifications for renewal or error etc.
   - It's probably the easiest & smartest shell script to automatically issue & renew the free certificates from Let's Encrypt.
 
   Wiki: https://github.com/acmesh-official/acme.sh/wiki
