@@ -1,6 +1,6 @@
 name: acme-sh
 base: core20
-version: '2.8.7'
+version: '2.8.8'
 summary: 'An ACME Shell script: acme.sh'
 description: |
   An ACME protocol client written purely in Shell (Unix shell) language 
@@ -127,6 +127,7 @@ parts:
       publish-daemon: bin/publish-daemon
       renew-daemon: bin/renew-daemon
     stage-packages:
+      - rsync
       - openssh-client
       - gpg
       - gpg-agent
