@@ -3,6 +3,7 @@ base: core20
 version: '2.8.8'
 summary: 'An ACME Shell script: acme.sh'
 description: |
+  An ACME protocol client written purely in Shell (Unix shell) language 
 assumes: 
   - command-chain
 
