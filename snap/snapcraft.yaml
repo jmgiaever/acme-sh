@@ -4,16 +4,29 @@ version: '2.8.8'
 summary: 'An ACME Shell script: acme.sh'
 description: |
   An ACME protocol client written purely in Shell (Unix shell) language 
+  - Full ACME protocol implementation.
+  - Support ACME v1 and ACME v2
+  - Support ACME v2 wildcard certs
+  - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
+  - Simplest shell script for Let's Encrypt free certificate client.
+  - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
+  - Just one script to issue, renew and install your certificates automatically.
+  - DOES NOT require root/sudoer access.
+  - IPv6 support
+  - It's probably the easiest & smartest shell script to automatically issue & renew the free certificates from Let's Encrypt.
+  Wiki: https://github.com/acmesh-official/acme.sh/wiki
+
+  BE AWARE that this version do not include all it's features, such as
+  - notify
+  - crontabs (instead it uses a daemon)
+  - running commands outside of its own filesystem
+  - but if you need to copy certificates, see the certs-plug 
 assumes: 
   - command-chain
 
-grade: stable # must be 'stable' to release into candidate/stable channels
-confinement: strict # use 'strict' once you have the right plugs and slots
+grade: stable
+confinement: strict
 
-# architectures:
-#   - build-on: arm64
-#   - build-on: amd64
-#
 hooks:
   connect-plug-certs:
     plugs: [network, network-bind]
@@ -46,7 +59,7 @@ apps:
   renew-daemon:
     daemon: oneshot
     restart-condition: always
-    timer: 00:00~24:00/2 # Twice a day..
+    timer: 00:00~24:00/2
     command: bin/renew-daemon
     plugs:
       - network
@@ -106,7 +119,6 @@ parts:
       publish-daemon: bin/publish-daemon
       renew-daemon: bin/renew-daemon
     stage-packages:
-      - rsync
       - openssh-client
       - gpg
       - gpg-agent
