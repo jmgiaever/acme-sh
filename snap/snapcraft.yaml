@@ -3,39 +3,46 @@ base: core20
 version: '2.8.8'
 summary: 'An ACME Shell script: acme.sh'
 description: |
-  An ACME protocol client written purely in Shell (Unix shell) language 
+  An ACME protocol client written purely in Shell (Unix shell) language
   - Full ACME protocol implementation.
   - Support ACME v1 and ACME v2
   - Support ACME v2 wildcard certs
   - Simple, powerful and very easy to use. You only need 3 minutes to learn it.
   - Simplest shell script for Let's Encrypt free certificate client.
-  - Purely written in Shell with no dependencies on python or the official Let's Encrypt client.
+  - Purely written in Shell with no dependencies on python or the official
+    Let's Encrypt client.
   - Just one script to issue, renew and install your certificates automatically.
   - DOES NOT require root/sudoer access.
   - IPv6 support
-  - It's probably the easiest & smartest shell script to automatically issue & renew the free certificates from Let's Encrypt.
+  - It's probably the easiest & smartest shell script to automatically issue &
+    renew the free certificates from Let's Encrypt.
   Wiki: https://github.com/acmesh-official/acme.sh/wiki
 
   BE AWARE that this version do not include all it's features, such as
   - notify
   - crontabs (instead it uses a daemon)
   - running commands outside of its own filesystem
-  - but if you need to copy certificates, see the certs-plug 
-assumes: 
+  - but if you need to copy certificates, see the certs-plug
+assumes:
   - command-chain
 
 grade: stable
 confinement: strict
-
-hooks:
-  connect-plug-certs:
-    plugs: [network, network-bind]
+architectures:
+  - build-on: amd64
+    run-on: amd64
+  - build-on: arm64
+    run-on: arm64
+  - build-on: armhf
+    run-on: armhf
+  - build-on: ppc64el
+    run-on: ppc64el
 
 apps:
   acme-sh:
     environment:
       LE_WORKING_DIR: $SNAP
-    command-chain: [ bin/init ]
+    command-chain: [bin/init]
     command: bin/acme.sh
     plugs:
       - network
@@ -49,7 +56,7 @@ apps:
   dns-manual:
     environment:
       LE_WORKING_DIR: $SNAP
-    command-chain: [ bin/init ]
+    command-chain: [bin/init]
     command: bin/acme.sh --dns --yes-I-know-dns-manual-mode-enough-go-ahead-please
     plugs:
       - network
@@ -74,7 +81,7 @@ plugs:
 
 hooks:
   connect-plug-certs:
-    plugs: [certs]
+    plugs: [certs, network, network-bind]
 
 parts:
   acme-sh:
